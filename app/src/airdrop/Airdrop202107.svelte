@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { contract } from "../web3/stores";
+	import { connected, contract } from "../web3/stores";
 
 	let qualifiesPromise = new Promise<boolean>(() => false);
 	let claimedPromise = new Promise<boolean>(() => false);
@@ -33,44 +33,48 @@
 
 	<h2>Qualification</h2>
 
-	{#await qualifiesPromise}
-		<p>🤔 Checking...</p>
-	{:then qualifies}
-		{#if qualifies}
-			<p>🎉 You qualify for the airdrop!</p>
+	{#if !$connected}
+		<p>Connect your wallet first (top-right of the screen).</p>
+	{:else}
+		{#await qualifiesPromise}
+			<p>🤔 Checking...</p>
+		{:then qualifies}
+			{#if qualifies}
+				<p>🎉 You qualify for the airdrop!</p>
 
-			<h2>Claim</h2>
+				<h2>Claim</h2>
 
-			{#await claimedPromise}
-				<p>🤔 Checking...</p>
-			{:then claimed}
-				{#if claimed}
-					<p>✅ You have claimed the airdrop.</p>
-				{:else}
-					<p>🎉 You have not yet claimed the airdrop.</p>
-					<p>
-						{#await claimingPromise}
-							<button disabled>
-								🕐 Waiting for transaction to be mined...
-							</button>
-						{:then claiming}
-							<button on:click={claimAirdrop}>
-								💰 Claim 1000 BRIB
-							</button>
-						{:catch error}
-							<p>🛑 Something went wrong.</p>
-						{/await}
-					</p>
-				{/if}
-			{:catch error}
-				<p>🛑 Something went wrong.</p>
-			{/await}
-		{:else}
-			<p>🙁 You do not qualify for the airdrop.</p>
-		{/if}
-	{:catch error}
-		<p>🛑 Something went wrong.</p>
-	{/await}
+				{#await claimedPromise}
+					<p>🤔 Checking...</p>
+				{:then claimed}
+					{#if claimed}
+						<p>✅ You have claimed the airdrop.</p>
+					{:else}
+						<p>🎉 You have not yet claimed the airdrop.</p>
+						<p>
+							{#await claimingPromise}
+								<button disabled>
+									🕐 Waiting for transaction to be mined...
+								</button>
+							{:then claiming}
+								<button on:click={claimAirdrop}>
+									💰 Claim 1000 BRIB
+								</button>
+							{:catch error}
+								<p>🛑 Something went wrong.</p>
+							{/await}
+						</p>
+					{/if}
+				{:catch error}
+					<p>🛑 Something went wrong.</p>
+				{/await}
+			{:else}
+				<p>🙁 You do not qualify for the airdrop.</p>
+			{/if}
+		{:catch error}
+			<p>🛑 Something went wrong.</p>
+		{/await}
+	{/if}
 </div>
 
 <style>
