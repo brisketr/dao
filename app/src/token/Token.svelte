@@ -68,7 +68,7 @@
 		<tr>
 			<td>Trade</td>
 			<td class="number">
-				<a href="#">Trader Joe</a>
+				<a href="https://traderjoexyz.com/#/trade?inputCurrency=0x130966628846bfd36ff31a822705796e8cb8c18d&outputCurrency=0xa1437720c93b791b72f5b8a5846227763792afd7">Trader Joe</a>
 			</td>
 		</tr>
 	</table>
