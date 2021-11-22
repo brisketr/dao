@@ -16,7 +16,7 @@ export const NETWORK_METADATA = {
 	[PRODUCTION_NETWORK_ID]: {
 		NAME: "Avalanche",
 		CONTRACTS: {			// Comment these out to test deployment.
-			"BRIBAirdrop202107": "0x5fc8d32690cc91d4c39d9d3abcbd16989f875707",
+			"BRIBAirdrop202107": "0xd30d80566288b1805f952677f6a22c366dc68bbc",
 			"BrisketTreasury": "0x343b65e5adC2C660dfd5889ef0597676E9AbE99F",
 			"BRIBSnapshot202107": "0xb985031D5Dd51389F32Cd6f5F26dC6045365f6A1",
 			"BRIBToken": "0xa1437720c93b791b72f5b8a5846227763792afd7",
