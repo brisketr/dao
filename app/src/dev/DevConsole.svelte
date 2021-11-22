@@ -35,6 +35,11 @@
 		if ($contract.BRIBSnapshot202107) {
 			contractDeployStates.BRIBSnapshot202107 = DEPLOY_STATES.DEPLOYED;
 		}
+
+		// If BRIBAirdrop202107 is deployed, set state to DEPLOYED.
+		if ($contract.BRIBAirdrop202107) {
+			contractDeployStates.BRIBAirdrop202107 = DEPLOY_STATES.DEPLOYED;
+		}
 	}
 
 	/**
