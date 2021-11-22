@@ -1,11 +1,9 @@
 <script lang="ts">
-	import { connected, contract, ethersProvider } from "../web3/stores";
 	import {
-		BRIBToken__factory,
-		BrisketTreasury__factory,
-		BRIBSnapshot202107__factory,
+	BRIBAirdrop202107__factory,BRIBSnapshot202107__factory,BRIBToken__factory,
+	BrisketTreasury__factory
 	} from "@brisket-dao/core";
-import { ethers } from "ethers";
+	import { connected,contract,ethersProvider } from "../web3/stores";
 
 	// Define possible DEPLOY_STATES.
 	const DEPLOY_STATES = {
@@ -19,6 +17,7 @@ import { ethers } from "ethers";
 		BRIBToken: DEPLOY_STATES.NOT_STARTED,
 		BrisketTreasury: DEPLOY_STATES.NOT_STARTED,
 		BRIBSnapshot202107: DEPLOY_STATES.NOT_STARTED,
+		BRIBAirdrop202107: DEPLOY_STATES.NOT_STARTED,
 	};
 
 	$: {
@@ -43,7 +42,9 @@ import { ethers } from "ethers";
 	 */
 	async function deployTreasuryContract() {
 		// Initialize contract factory.
-		const factory = new BrisketTreasury__factory($ethersProvider.getSigner());
+		const factory = new BrisketTreasury__factory(
+			$ethersProvider.getSigner()
+		);
 
 		// Deploy the contract.
 		console.log("deploying BrisketTreasury contract");
@@ -81,7 +82,9 @@ import { ethers } from "ethers";
 		}
 
 		// Initialize contract factory.
-		const factory = new BRIBSnapshot202107__factory($ethersProvider.getSigner());
+		const factory = new BRIBSnapshot202107__factory(
+			$ethersProvider.getSigner()
+		);
 
 		// Deploy the contract.
 		console.log("deploying BRIBSnapshot202107 contract");
@@ -138,6 +141,57 @@ import { ethers } from "ethers";
 		} catch (e) {
 			contractDeployStates["BRIBToken"] = DEPLOY_STATES.ERROR;
 			console.error("Error deploying BRIBToken contract:", e);
+		}
+	}
+
+	/**
+	 * Deploys the BRIBAirdrop202107 contract.
+	 */
+	async function deployAirdropContract() {
+		// Get the token contract address. Return if not deployed.
+		const token = $contract.BRIBToken;
+
+		if (!token) {
+			console.log("BRIBToken contract not deployed");
+			return;
+		}
+
+		// Get the snapshot contract address. Return if not deployed.
+		const snapshot = $contract.BRIBSnapshot202107;
+
+		if (!snapshot) {
+			console.log("BRIBSnapshot202107 contract not deployed");
+			return;
+		}
+
+		// Initialize contract factory.
+		const factory = new BRIBAirdrop202107__factory(
+			$ethersProvider.getSigner()
+		);
+
+		// Deploy the contract.
+		console.log("deploying BRIBAirdrop202107 contract");
+		contractDeployStates["BRIBAirdrop202107"] = DEPLOY_STATES.DEPLOYING;
+
+		try {
+			const airdrop = await factory.deploy(
+				token.address,
+				snapshot.address
+			);
+
+			// Wait for the transaction to be mined.
+			await airdrop.deployed();
+			console.log(
+				"BRIBAirdrop202107 contract deployed at",
+				airdrop.address
+			);
+
+			// Update the contract store.
+			$contract["BRIBAirdrop202107"] = airdrop;
+			contractDeployStates["BRIBAirdrop202107"] = DEPLOY_STATES.DEPLOYED;
+		} catch (e) {
+			contractDeployStates["BRIBAirdrop202107"] = DEPLOY_STATES.ERROR;
+			console.error("Error deploying BRIBAirdrop202107 contract:", e);
 		}
 	}
 </script>
@@ -205,6 +259,28 @@ import { ethers } from "ethers";
 					</button>
 				</td>
 			</tr>
+			<tr>
+				<td>BRIBAirdrop202107</td>
+				<td>
+					<!-- BRIBAirdrop202107 deploy button disabled if BRIBToken and BRIBSnapshot202107 are not yet deployed -->
+					<button
+						on:click={deployAirdropContract}
+						disabled={contractDeployStates.BRIBToken !==
+							DEPLOY_STATES.DEPLOYED ||
+							contractDeployStates.BRIBSnapshot202107 !==
+								DEPLOY_STATES.DEPLOYED}
+					>
+						{#if contractDeployStates.BRIBAirdrop202107 === DEPLOY_STATES.NOT_STARTED}
+							&#x2191; Deploy
+						{:else if contractDeployStates.BRIBAirdrop202107 === DEPLOY_STATES.DEPLOYING}
+							🕘 Deploying...
+						{:else if contractDeployStates.BRIBAirdrop202107 === DEPLOY_STATES.DEPLOYED}
+							💥 Deployed
+						{:else if contractDeployStates.BRIBAirdrop202107 === DEPLOY_STATES.ERROR}
+							🛑 Error
+						{/if}
+					</button>
+				</td>
 		</table>
 	{:else}
 		<p>Must be connected to deploy contracts.</p>
