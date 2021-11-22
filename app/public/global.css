@@ -1,0 +1,149 @@
+html, body {
+	position: relative;
+	width: 100%;
+	height: 100%;
+}
+
+body {
+	color: white;
+	background-color: black;
+	margin: 0;
+	box-sizing: border-box;
+	font-family: Consolas, monospace;
+	padding: 0;
+	padding-top: 50px;
+}
+
+/* Set padding on large screens */
+@media only screen and (min-width: 769px) {
+	body {
+		padding-left: 8px;
+		padding-right: 8px;
+	}
+}
+
+/* No padding on body on mobile. */
+@media (max-width: 768px) {
+	body {
+		padding-left: 0;
+		padding-right: 0;
+	}
+}
+
+a {
+	color: white;
+	text-decoration: underline;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:visited {
+	color:white;
+}
+
+label {
+	display: block;
+}
+
+input, button, select, textarea {
+	font-family: inherit;
+	font-size: inherit;
+	-webkit-padding: 0.4em 0;
+	padding: 0.4em;
+	margin: 0 0 0.5em 0;
+	box-sizing: border-box;
+	border: 1px solid #fff;
+	color: white;
+	background-color: transparent;
+	width: 100%;
+
+	/* No rounded corners. */
+	border-radius: 0;
+}
+
+/* No radius on active inputs, buttons, etc. */
+input:focus, button:focus, select:focus, textarea:focus {
+	outline: none;
+}
+
+
+option {
+	border-radius: 0;
+	background-color: #000;
+	color: #fff;
+	border: 1px solid #fff;
+}
+
+input:disabled {
+	color: #ccc;
+}
+
+button {
+	outline: none;
+	border: 1px solid white;
+}
+
+button:disabled {
+	color: #999;
+}
+
+button:not(:disabled):active {
+	background-color: #ddd;
+}
+
+button:focus {
+	border-color: #666;
+}
+
+button:not(:disabled):hover {
+	background-color: #222;
+}
+
+div#ui {
+	margin: 0 auto;
+	box-sizing: border-box;
+}
+
+table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+th {
+	text-align: left;
+}
+
+table td.number {
+	text-align: right;
+}
+
+@media screen and (min-width: 769px) {
+	div#ui {
+		width: 60%;
+		/* set minimum width */
+		min-width: 60%;
+		border: 1px solid white;
+		padding: 2em;
+	}
+}
+
+@media screen and (max-width: 768px) {
+	div#ui {
+		width: 100%;
+		margin: 0;
+		border: none;
+		padding: 1em;
+	}
+}
+
+/* Remove top padding and margin for first header in div#ui. */
+div#ui h1:first-child {
+	margin-top: 0;
+	padding-top: 0;
+}
+
+#ui p:last-child {
+	margin-bottom: 0;
+}

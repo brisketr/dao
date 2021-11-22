@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "lib": ["es5", "es6"],
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noImplicitAny": true,
+    "outDir": "dist",
+    "resolveJsonModule": true,
+    "sourceMap": true,
+    "strict": true,
+    "target": "es2017",
+    "declaration": true,
+    "declarationMap": true,
+    "skipLibCheck": true,
+    "composite": true
+  },
+  "exclude": ["artifacts", "node_modules"],
+  "files": ["./hardhat.config.ts"],
+  "include": [
+    "artifacts/**/*",
+    "artifacts/**/*.json",
+    "scripts/**/*",
+    "tasks/**/*",
+    "test/**/*",
+    "typechain/**/*",
+    "types/**/*"
+  ]
+}
