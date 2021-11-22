@@ -104,6 +104,11 @@ export async function connectWeb3() {
 					tokenBalanceBRIB.set(balance);
 				});
 			});
+
+			// Get initial token balance.
+			contracts.BRIBToken.balanceOf(address).then(balance => {
+				tokenBalanceBRIB.set(balance);
+			});
 		}
 
 		if (NETWORK_METADATA[network.chainId]["CONTRACTS"]["BRIBSnapshot202107"]) {
