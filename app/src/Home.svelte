@@ -20,7 +20,7 @@
 		<h2>Earn BRIB</h2>
 
 		<p>
-			💰💰💰 Want to earn BRIB?
+			💰💰💰 Want to earn <a href="#/token">BRIB</a>?
 		</p>
 
 		<p>

@@ -136,8 +136,14 @@
 
 <div id="ui">
 	<h1>BRIB Token</h1>
+		<p>
+			
+			BRIB is a community token. Read more about it on the <a
+			href="#/token/description">Token Description</a> page.
+			
+		</p>
 	{#if !$connected}
-		<p>You must be connected to web3 to view token information.</p>
+		<p>You must be connected to web3 to view token stats.</p>
 	{:else}
 		<table>
 			{#if hasMetamask}

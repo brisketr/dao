@@ -5,6 +5,7 @@
 	import DevConsole from "./dev/DevConsole.svelte";
 	import Home from "./Home.svelte";
 	import Nav from "./Nav.svelte";
+	import Description from "./token/Description.svelte";
 	import Token from "./token/Token.svelte";
 	import Mint from "./treasury/Mint.svelte";
 	import Treasury from "./treasury/Treasury.svelte";
@@ -16,6 +17,7 @@
 		"/treasury": Treasury,
 		"/mint": Mint,
 		"/token": Token,
+		"/token/description": Description,
 		"/airdrop/202107": Airdrop202107,
 		"/contributions/suggested": Suggested,
 	};
