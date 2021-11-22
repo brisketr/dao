@@ -1,6 +1,12 @@
 import { ethers } from "ethers";
 import Web3Modal from 'web3modal';
-import { BRIBAirdrop202107__factory, BRIBSnapshot202107__factory, BRIBToken__factory, BrisketTreasury__factory } from '../../../core/dist/typechain';
+import {
+	BRIBAirdrop202107__factory,
+	BRIBSnapshot202107__factory,
+	BRIBToken__factory,
+	BrisketTreasury__factory,
+	IJoePair__factory
+} from '@brisket-dao/core';
 import { NETWORK_METADATA, SUPPORTED_NETWORKS } from './constants';
 import { Contracts } from './contracts';
 import { address as addressStore, connected, connecting, contract as contractStore, ethersProvider as ethersProviderStore, network as networkStore, tokenBalanceBRIB, wrongNetwork } from './stores';
@@ -121,6 +127,12 @@ export async function connectWeb3() {
 			console.log(`connecting to BRIBAirdrop202107 contract at ${NETWORK_METADATA[network.chainId]["CONTRACTS"]["BRIBAirdrop202107"]}`);
 			contracts.BRIBAirdrop202107 = BRIBAirdrop202107__factory.connect(
 				NETWORK_METADATA[network.chainId]["CONTRACTS"]["BRIBAirdrop202107"], ethersProvider.getSigner());
+		}
+
+		if (NETWORK_METADATA[network.chainId]["CONTRACTS"]["MIMBRIBJoePair"]) {
+			console.log(`connecting to MIMB-RIB JoePair contract at ${NETWORK_METADATA[network.chainId]["CONTRACTS"]["MIMBRIBJoePair"]}`);
+			contracts.MIMBRIBJoePair = IJoePair__factory.connect(
+				NETWORK_METADATA[network.chainId]["CONTRACTS"]["MIMBRIBJoePair"], ethersProvider.getSigner());
 		}
 	}
 

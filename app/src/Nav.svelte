@@ -36,9 +36,12 @@
 				formattedAddress.substring(38);
 		}
 
-		formattedTokenBalanceBRIB = ethers.utils.commify(
+		formattedTokenBalanceBRIB = parseFloat(
 			ethers.utils.formatUnits($tokenBalanceBRIB, 18)
-		);
+		).toLocaleString("en-US", {
+			maximumFractionDigits: 2,
+			minimumFractionDigits: 2,
+		});
 	}
 
 	let hasMetamask = window.ethereum ? true : false;
@@ -49,8 +52,8 @@
 				method: "wallet_switchEthereumChain",
 				params: [{ chainId: "0xA86A" }],
 			});
-			
-			localStorage.setItem('connected', 'true');
+
+			localStorage.setItem("connected", "true");
 		} else {
 			console.warn("cannot switch network: no metamask");
 		}
@@ -67,7 +70,9 @@
 			Wrong Network
 
 			{#if hasMetamask}
-				(<span id="switch-network" on:click={switchMetamaskNetwork}>Switch</span>)
+				(<span id="switch-network" on:click={switchMetamaskNetwork}
+					>Switch</span
+				>)
 			{/if}
 		</div>
 	{:else if !$connected && !$connecting}
