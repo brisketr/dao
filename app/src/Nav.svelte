@@ -71,7 +71,13 @@
 			{/if}
 		</div>
 	{:else if !$connected && !$connecting}
-		<button on:click={connectWeb3}>Connect</button>
+		{#if hasMetamask}
+			<button on:click={connectWeb3}>Connect</button>
+		{:else}
+			<div class="nav-item">
+				<a href="https://metamask.io/">MetaMask Required to Connect</a>
+			</div>
+		{/if}
 	{:else if !$connected && $connecting}
 		<button disabled>Connecting...</button>
 	{:else}
