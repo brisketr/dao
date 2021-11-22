@@ -22,7 +22,7 @@
 		are <em>not guaranteed</em>.
 	</p>
 
-	<div class="contribution">
+	<div class="content-card">
 		<h2>🔭 Discover New Projects</h2>
 
 		<p>
@@ -42,7 +42,7 @@
 		</p>
 	</div>
 
-	<div class="contribution">
+	<div class="content-card">
 		<h2>🔍 Contribute to Due Diligence</h2>
 
 		<p>
@@ -64,7 +64,7 @@
 		</ul>
 	</div>
 
-	<div class="contribution">
+	<div class="content-card">
 		<h2>💬 Contribute to the Discussion</h2>
 
 		<p>
@@ -74,7 +74,7 @@
 		</p>
 	</div>
 
-	<div class="contribution">
+	<div class="content-card">
 		<!-- technical contributions -->
 		<h2>💻 Technical Contributions</h2>
 
@@ -97,7 +97,7 @@
 	</div>
 
 
-	<div class="contribution">
+	<div class="content-card">
 		<h2>📝 Content Contributions</h2>
 
 		<p>
@@ -118,7 +118,7 @@
 
 	</div>
 
-	<div class="contribution">
+	<div class="content-card">
 		<h2>💰 Paid Community Members</h2>
 
 		<p>
@@ -128,7 +128,7 @@
 		</p>
 	</div>
 
-	<div class="contribution">
+	<div class="content-card">
 		<h2>🤝 Referral of Value-Adding Members</h2>
 
 		<p>
@@ -137,7 +137,7 @@
 		</p>
 	</div>
 
-	<div class="contribution">
+	<div class="content-card">
 		<h2>💪 Special Skills</h2>
 
 		<p>
@@ -150,18 +150,4 @@
 </div>
 
 <style>
-	.contribution {
-		padding: 1em;
-		border: 1px solid white;
-	}
-
-	/* Remove space from top of first heading in contribution container. */
-	.contribution h2:first-child {
-		margin-top: 0;
-	}
-
-	/* Add 1em of space between each contribution */
-	.contribution + .contribution {
-		margin-top: 1em;
-	}
 </style>

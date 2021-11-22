@@ -147,3 +147,18 @@ div#ui h1:first-child {
 #ui p:last-child {
 	margin-bottom: 0;
 }
+
+.content-card {
+	padding: 1em;
+	border: 1px solid white;
+}
+
+/* Remove space from top of first heading in content-card container. */
+.content-card h2:first-child {
+	margin-top: 0;
+}
+
+/* Add 1em of space between each content-card */
+.content-card + .content-card {
+	margin-top: 1em;
+}
