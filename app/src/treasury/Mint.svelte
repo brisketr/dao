@@ -2,6 +2,8 @@
 	import { ethers } from "ethers";
 	import { address, connected, contract, ethersProvider } from "../web3/stores";
 
+	export let params = {} as any;
+
 	// Enum of possible mint states.
 	enum MintState {
 		Pending,
@@ -14,8 +16,8 @@
 	let mintState = MintState.Pending;
 
 	// Init mint input values.
-	let amount = "";
-	let recipient = "";
+	let amount = params.amount || "";
+	let recipient = params.recipient || "";
 
 	let inputsValid = false;
 

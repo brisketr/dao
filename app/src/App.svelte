@@ -1,6 +1,8 @@
 <script lang="ts">
 	import Router from "svelte-spa-router";
 	import Airdrop202107 from "./airdrop/Airdrop202107.svelte";
+	import Claim from "./airdrop/signdrop/Claim.svelte";
+	import Create from "./airdrop/signdrop/Create.svelte";
 	import Suggested from "./contributions/Suggested.svelte";
 	import DevConsole from "./dev/DevConsole.svelte";
 	import Home from "./Home.svelte";
@@ -15,10 +17,12 @@
 		"/": Home,
 		"/dev": DevConsole,
 		"/treasury": Treasury,
-		"/mint": Mint,
+		"/mint/:recipient?/:amount?": Mint,
 		"/token": Token,
 		"/token/description": Description,
 		"/airdrop/202107": Airdrop202107,
+		"/airdrop/signdrop/create": Create,
+		"/airdrop/signdrop/claim/:contractAddress/:airdropPrivateKey": Claim,
 		"/contributions/suggested": Suggested,
 	};
 

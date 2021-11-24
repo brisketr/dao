@@ -93,17 +93,33 @@ export async function connectWeb3() {
 	let contracts = new Contracts();
 
 	if (NETWORK_METADATA[network.chainId]) {
-		if (NETWORK_METADATA[network.chainId]["CONTRACTS"]["BrisketTreasury"]) {
-			console.log(`connecting to BrisketTreasury contract at ${NETWORK_METADATA[network.chainId]["CONTRACTS"]["BrisketTreasury"]}`);
-			contracts.BrisketTreasury = BrisketTreasury__factory.connect(
-				NETWORK_METADATA[network.chainId]["CONTRACTS"]["BrisketTreasury"], ethersProvider.getSigner());
+
+		/**
+		 * Connect to the given contract.
+		 */
+		function connectToContract(contractFactory, contractName) {
+			if (NETWORK_METADATA[network.chainId]["CONTRACTS"][contractName]) {
+				console.log(`connecting to ${contractName} contract at ${NETWORK_METADATA[network.chainId]["CONTRACTS"][contractName]}`);
+				contracts[contractName] = contractFactory.connect(
+					NETWORK_METADATA[network.chainId]["CONTRACTS"][contractName], ethersProvider.getSigner());
+			}
 		}
 
-		if (NETWORK_METADATA[network.chainId]["CONTRACTS"]["BRIBToken"]) {
-			console.log(`connecting to BRIBToken contract at ${NETWORK_METADATA[network.chainId]["CONTRACTS"]["BRIBToken"]}`);
-			contracts.BRIBToken = BRIBToken__factory.connect(
-				NETWORK_METADATA[network.chainId]["CONTRACTS"]["BRIBToken"], ethersProvider.getSigner());
+		// Define a constant structure with all contract factories and names
+		const contractFactories = {
+			BRIBAirdrop202107: BRIBAirdrop202107__factory,
+			BRIBSnapshot202107: BRIBSnapshot202107__factory,
+			BRIBToken: BRIBToken__factory,
+			BrisketTreasury: BrisketTreasury__factory,
+			MIMBRIBJoePair: IJoePair__factory
+		};
 
+		// Connect to all contracts.
+		for (let contractName in contractFactories) {
+			connectToContract(contractFactories[contractName], contractName);
+		}
+
+		if (contracts.BRIBToken) {
 			// Use ethers to subscribe to BRIBToken events and update tokenBalanceBRIB when balance changes.
 			contracts.BRIBToken.on('Transfer', (from, to, value) => {
 				contracts.BRIBToken.balanceOf(address).then(balance => {
@@ -116,28 +132,9 @@ export async function connectWeb3() {
 				tokenBalanceBRIB.set(balance);
 			});
 		}
-
-		if (NETWORK_METADATA[network.chainId]["CONTRACTS"]["BRIBSnapshot202107"]) {
-			console.log(`connecting to BRIBSnapshot202107 contract at ${NETWORK_METADATA[network.chainId]["CONTRACTS"]["BRIBSnapshot202107"]}`);
-			contracts.BRIBSnapshot202107 = BRIBSnapshot202107__factory.connect(
-				NETWORK_METADATA[network.chainId]["CONTRACTS"]["BRIBSnapshot202107"], ethersProvider.getSigner());
-		}
-
-		if (NETWORK_METADATA[network.chainId]["CONTRACTS"]["BRIBAirdrop202107"]) {
-			console.log(`connecting to BRIBAirdrop202107 contract at ${NETWORK_METADATA[network.chainId]["CONTRACTS"]["BRIBAirdrop202107"]}`);
-			contracts.BRIBAirdrop202107 = BRIBAirdrop202107__factory.connect(
-				NETWORK_METADATA[network.chainId]["CONTRACTS"]["BRIBAirdrop202107"], ethersProvider.getSigner());
-		}
-
-		if (NETWORK_METADATA[network.chainId]["CONTRACTS"]["MIMBRIBJoePair"]) {
-			console.log(`connecting to MIMB-RIB JoePair contract at ${NETWORK_METADATA[network.chainId]["CONTRACTS"]["MIMBRIBJoePair"]}`);
-			contracts.MIMBRIBJoePair = IJoePair__factory.connect(
-				NETWORK_METADATA[network.chainId]["CONTRACTS"]["MIMBRIBJoePair"], ethersProvider.getSigner());
-		}
 	}
 
 	contractStore.set(contracts);
-
 
 	// Store ethers provider.
 	ethersProviderStore.set(ethersProvider);
