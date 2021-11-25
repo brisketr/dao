@@ -22,9 +22,10 @@
 		<h2>Community</h2>
 		<ul>
 			<li><a href="https://www.youtube.com/channel/UCh40HneN7nEhiqCixajTmjw">BrisketRib</a> on YouTube</li>
-			<li><a href="https://www.youtube.com/channel/UC0wJLp9J164eigqQDFsPnjw">BrisketRib Live Streams</a> on YouTube</li>
+			<li><a href="https://twitch.tv/brisketr">BrisketRib Live Streams</a> on Twitch</li>
+			<li><a href="https://www.youtube.com/channel/UC0wJLp9J164eigqQDFsPnjw">BrisketRib Live Streams</a> on YouTube (recorded)</li>
 			<li><a href="https://twitter.com/brisketr">BrisketR</a> on Twitter</li>
-			<li><a href="https://brisket.lol/telegram">Telegram</a> paid group.</li>
+			<li><a href="https://brisket.lol/telegram">Telegram</a></li>
 		</ul>
 	</div>
 
