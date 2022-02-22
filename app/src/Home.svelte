@@ -59,15 +59,6 @@
 			participation is <em>not a job</em>!
 		</p>
 	</div>
-
-	<div class="content-card">
-		<h2>Airdrop</h2>
-
-		<p>
-			Do you qualify for the 2021-07 Airdrop?
-			<a href="#/airdrop/202107">Find out!</a>
-		</p>
-	</div>
 </div>
 
 <style>
