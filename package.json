@@ -7,7 +7,7 @@
   "scripts": {
     "compile": "npm run compile -w core",
     "test": "npm run test -w core",
-    "node": "concurrently \"npm exec -w core -- hardhat node\" \"wait-port localhost:8545 && npm exec -w core -- hardhat run scripts/deploy-local.ts --network localhost\"",
+    "node": "concurrently \"npm exec -w core -- hardhat node --hostname 127.0.0.1\" \"wait-port localhost:8545 && npm exec -w core -- hardhat run scripts/deploy-local.ts --network localhost\"",
     "start": "npm run compile && concurrently \"npm run node\" \"HOST=localhost npm run start -w app\"",
     "deploy:matic": "npm run hardhat run scripts/deploy.ts --network matic -w core",
     "console:matic": "npm run hardhat console --network matic -w core"
