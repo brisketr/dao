@@ -11,6 +11,7 @@ export const NETWORK_METADATA = {
 			"BrisketTreasury": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
 			"BRIBToken": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
 			"BRIBAirdrop202107": "0x5fc8d32690cc91d4c39d9d3abcbd16989f875707",
+			"InfoExchangeGenesis": "0x0165878A594ca255338adfa4d48449f69242Eb8F",
 		}
 	},
 	[PRODUCTION_NETWORK_ID]: {

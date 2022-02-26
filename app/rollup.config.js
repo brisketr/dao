@@ -36,9 +36,13 @@ export default {
 		sourcemap: true,
 		format: 'iife',
 		name: 'app',
-		file: 'public/build/bundle.js'
+		file: 'public/build/bundle.js',
+
+		// Required for IPFS dynamic import.
+		inlineDynamicImports: true
 	},
 	plugins: [
+
 		svelte({
 			preprocess: sveltePreprocess({ sourceMap: !production }),
 			compilerOptions: {

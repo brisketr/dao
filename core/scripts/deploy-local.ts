@@ -8,7 +8,9 @@ import {
   BRIBAirdrop202107,
   BRIBAirdrop202107__factory,
   BrisketTreasury,
-  BrisketTreasury__factory
+  BrisketTreasury__factory,
+  InfoExchange__factory,
+  InfoExchange
 } from "../typechain";
 
 async function main(): Promise<void> {
@@ -46,6 +48,12 @@ async function main(): Promise<void> {
 
   await airdrop.deployed();
   console.log("BRIBAirdrop202107 deployed to: ", airdrop.address);
+
+  const InfoExchange: InfoExchange__factory = await ethers.getContractFactory("InfoExchange");
+  const infoExchange: InfoExchange = await InfoExchange.deploy(token.address);
+
+  await airdrop.deployed();
+  console.log("InfoExchange genesis deployed to: ", infoExchange.address);
 
   // Mint tokens to the airdrop contract
   await token.mint(airdrop.address, ethers.utils.parseUnits('10000', 18));
