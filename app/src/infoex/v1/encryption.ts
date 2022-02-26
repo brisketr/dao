@@ -1,30 +1,40 @@
-export interface EncryptedData {
-	data: string;
-	iv: Uint8Array;
-}
+import { validateMnemonic } from 'bip39'
+import RSAKey from 'seededrsa'
+import { pem2jwk } from 'pem-jwk';
+import cryptoKeys from 'libp2p-crypto/src/keys'
+const fromJwk = cryptoKeys.supportedKeys.rsa.fromJwk;
+import PeerId from 'peer-id'
 
-function arrayBufferToBase64( buffer ) {
+function arrayBufferToBase64(buffer) {
 	var binary = '';
-	var bytes = new Uint8Array( buffer );
+	var bytes = new Uint8Array(buffer);
 	var len = bytes.byteLength;
 	for (var i = 0; i < len; i++) {
-		binary += String.fromCharCode( bytes[ i ] );
+		binary += String.fromCharCode(bytes[i]);
 	}
-	return btoa( binary );
+	return btoa(binary);
 }
 
 function base64ToArrayBuffer(base64) {
-    var binary_string =  atob(base64);
-    var len = binary_string.length;
-    var bytes = new Uint8Array( len );
-    for (var i = 0; i < len; i++)        {
-        bytes[i] = binary_string.charCodeAt(i);
-    }
-    return bytes.buffer;
+	var binary_string = atob(base64);
+	var len = binary_string.length;
+	var bytes = new Uint8Array(len);
+	for (var i = 0; i < len; i++) {
+		bytes[i] = binary_string.charCodeAt(i);
+	}
+	return bytes.buffer;
 }
 
 export class Encrypter {
-	private aesKey: CryptoKey;
+	private privKey: CryptoKey;
+	private pubKey: CryptoKey;
+
+	private privKeyJwk: JsonWebKey;
+	private pubKeyJwk: JsonWebKey;
+
+	private privKeyPem: string;
+	private pubKeyPem: string;
+
 	private crypto: Crypto;
 
 	private constructor() { }
@@ -32,43 +42,49 @@ export class Encrypter {
 	/**
 	 * Encrypter factory method.
 	 * 
-	 * @param {string} passphrase The passphrase to use for encryption.
-	 * @param {string} salt The salt to use for encryption.
+	 * @param {string} passphrase The passphrase used to generate the keys.
 	 * @param {Crypto} crypto The crypto object to use.
 	 */
-	public static async create(passphrase: string, salt: string, crypto: Crypto) {
-		const result = new Encrypter();
-		result.crypto = crypto;
+	public static async create(bip39Phrase: string, crypto: Crypto) {
 
-		// Derive key using passphrase.
-		// See also: https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveKey#pbkdf2_2
-		const key = await crypto.subtle.importKey(
-			'raw',
-			new TextEncoder().encode(passphrase),
+		// Validate that the bip39 phrase is valid.
+		if (!validateMnemonic(bip39Phrase)) {
+			throw new Error("invalid BIP39 phrase");
+		}
+
+		const result = new Encrypter();
+		const rsa = new RSAKey(bip39Phrase);
+		const kp = await rsa.generateNew(2048);
+
+		// Import private key.
+		result.privKeyPem = kp.privateKey;
+		result.privKeyJwk = pem2jwk(kp.privateKey);
+		result.privKey = await crypto.subtle.importKey(
+			'jwk',
+			result.privKeyJwk,
 			{
-				name: 'PBKDF2'
+				name: 'RSA-OAEP',
+				hash: { name: 'SHA-256' }
 			},
 			false,
-			['deriveKey', 'deriveBits']
+			['decrypt']
 		);
 
-		// Derive key using salt.
-		result.aesKey = await crypto.subtle.deriveKey(
+		// Import public key.
+		result.pubKeyPem = kp.publicKey;
+		result.pubKeyJwk = pem2jwk(kp.publicKey);
+		result.pubKey = await crypto.subtle.importKey(
+			'jwk',
+			result.pubKeyJwk,
 			{
-				name: 'PBKDF2',
-				salt: new TextEncoder().encode(salt),
-				iterations: 100000,
-				hash: 'SHA-256'
-			},
-			key,
-			{
-				name: 'AES-GCM',
-				length: 256
+				name: 'RSA-OAEP',
+				hash: { name: 'SHA-256' }
 			},
 			true,
-			['encrypt', 'decrypt']
+			['encrypt']
 		);
 
+		result.crypto = crypto;
 		return result;
 	}
 
@@ -87,7 +103,7 @@ export class Encrypter {
 	 * @returns {Promise<JsonWebKey>} The public key.
 	 */
 	public async exportPublicKey(): Promise<JsonWebKey> {
-		return this.crypto.subtle.exportKey('jwk', this.aesKey);
+		return this.crypto.subtle.exportKey('jwk', this.pubKey);
 	}
 
 	/**
@@ -96,51 +112,47 @@ export class Encrypter {
 	 * @param {string} data The data to encrypt.
 	 * @param {JsonWebKey} publicKey The public key to use for encryption
 	 * 
-	 * @returns {Promise<EncryptedData>} The encrypted data.
+	 * @returns {Promise<string>} The encrypted data.
 	 */
-	public async encrypt(data: string, publicKey: JsonWebKey): Promise<EncryptedData> {
+	public async encrypt(data: string, publicKey: JsonWebKey): Promise<string> {
 		const key = await this.crypto.subtle.importKey(
 			'jwk',
 			publicKey,
 			{
-				name: 'AES-GCM',
-				length: 256
+				name: 'RSA-OAEP',
+				hash: { name: 'SHA-256' }
 			},
 			false,
 			['encrypt']
 		);
 
-		const iv = this.crypto.getRandomValues(new Uint8Array(12));
-
 		const encrypted = await this.crypto.subtle.encrypt(
 			{
-				name: 'AES-GCM',
-				iv: iv
+				name: 'RSA-OAEP'
 			},
 			key,
 			new TextEncoder().encode(data)
 		);
 
-		return {
-			data: arrayBufferToBase64(encrypted),
-			iv: iv
-		};
+		return arrayBufferToBase64(encrypted);
 	}
 
 	/**
 	 * Decrypt the given data.
 	 * 
-	 * @param {EncryptedData} encryptedData The encrypted data.
+	 * @param {string} encryptedData The encrypted data.
 	 * @returns {Promise<string>} The decrypted data.
 	 */
-	public async decrypt(encryptedData: EncryptedData): Promise<string> {
+	public async decrypt(encryptedData: string): Promise<string> {
+		// Get IV and ciphertext.
+		const ciphertext = base64ToArrayBuffer(encryptedData);
+
 		const decrypted = await this.crypto.subtle.decrypt(
 			{
-				name: 'AES-GCM',
-				iv: encryptedData.iv
+				name: 'RSA-OAEP'
 			},
-			this.aesKey,
-			base64ToArrayBuffer(encryptedData.data)
+			this.privKey,
+			ciphertext
 		);
 
 		return new TextDecoder().decode(decrypted);

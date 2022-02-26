@@ -5,19 +5,40 @@ import { Encrypter } from "./encryption";
 import { webcrypto } from 'crypto'
 
 describe("Encrypter", async () => {
-	let passphrase = "passphrase";
-	let salt = "salt";
+	let alicePhrase = "journey mobile kingdom concert super aim soldier gentle journey word arrive private know room palm";
+	let bobPhrase = "shock inch giant ordinary upgrade category say cloth brand budget they gap banana leisure provide";
+
+	it("should throw error if BIP39 phrase is invalid", async () => {
+		let err = null;
+
+		try {
+			await Encrypter.create('bad phrase', webcrypto as any)
+		} catch (e) {
+			err = e;
+		}
+
+		expect(err).to.not.be.null;
+		expect(err.message).to.equal("invalid BIP39 phrase");
+	});
 
 	it("should decrypt what it encrypts", async () => {
-		const encrypter = await Encrypter.create(passphrase, salt, webcrypto as any);
+		const alice = await Encrypter.create(alicePhrase, webcrypto as any);
+		const bob = await Encrypter.create(bobPhrase, webcrypto as any);
 
-		const pubKey = await encrypter.exportPublicKey();
+		// Get public key.
+		const pubKey = await bob.exportPublicKey();
+
+		// Convert pubKey to/from JSON string to make sure nothing breaks.
+		const pubKeyJson = JSON.stringify(pubKey);
+		const pubKey2 = JSON.parse(pubKeyJson);
 
 		// Encrypt.
-		const encrypted = await encrypter.encrypt("Hello World", pubKey);
+		const encrypted = await alice.encrypt("Hello World", pubKey2);
+
+		console.log(`encrypted: ${encrypted}`);
 
 		// Decrypt.
-		const decrypted = await encrypter.decrypt(encrypted);
+		const decrypted = await bob.decrypt(encrypted);
 
 		// Verify.
 		expect(decrypted).to.equal("Hello World");
