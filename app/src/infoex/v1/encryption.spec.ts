@@ -8,6 +8,14 @@ describe("Encrypter", async () => {
 	let alicePhrase = "journey mobile kingdom concert super aim soldier gentle journey word arrive private know room palm";
 	let bobPhrase = "shock inch giant ordinary upgrade category say cloth brand budget they gap banana leisure provide";
 
+	it("should generate valid PeerId", async () => {
+		const alice = await Encrypter.create(alicePhrase, webcrypto as any);
+		const peerId = await alice.peerId();
+
+		expect(peerId.toString()).to.equal('bafzbeibpbkzcjnphscaphj5ypelvcqc57wuwif2zy3vvttugtuwwfzrp2q');
+
+	});
+
 	it("should throw error if BIP39 phrase is invalid", async () => {
 		let err = null;
 

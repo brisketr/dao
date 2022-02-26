@@ -157,4 +157,16 @@ export class Encrypter {
 
 		return new TextDecoder().decode(decrypted);
 	}
+
+	/**
+	 * Get the PeerId for this encrypter.
+	 * 
+	 * See Also: https://discuss.ipfs.io/t/js-ipfs-restoring-rsa-keys/5002/3
+	 * 
+	 * @returns {Promise<PeerId>} The PeerId.
+	 */
+	public async peerId(): Promise<PeerId> {
+		const priv = await fromJwk(this.privKeyJwk);
+		return PeerId.createFromPrivKey(cryptoKeys.marshalPrivateKey(priv));
+	}
 }
