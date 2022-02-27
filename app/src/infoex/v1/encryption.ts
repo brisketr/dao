@@ -1,9 +1,9 @@
-import { validateMnemonic } from 'bip39'
-import RSAKey from 'seededrsa'
+import { validateMnemonic } from 'bip39';
+import cryptoKeys from 'libp2p-crypto/src/keys';
+import PeerId from 'peer-id';
 import { pem2jwk } from 'pem-jwk';
-import cryptoKeys from 'libp2p-crypto/src/keys'
+import RSAKey from 'seededrsa';
 const fromJwk = cryptoKeys.supportedKeys.rsa.fromJwk;
-import PeerId from 'peer-id'
 
 function arrayBufferToBase64(buffer) {
 	var binary = '';
@@ -25,7 +25,7 @@ function base64ToArrayBuffer(base64) {
 	return bytes.buffer;
 }
 
-export class Encrypter {
+export class RSAEncrypter {
 	private privKey: CryptoKey;
 	private pubKey: CryptoKey;
 
@@ -42,17 +42,17 @@ export class Encrypter {
 	/**
 	 * Encrypter factory method.
 	 * 
-	 * @param {string} passphrase The passphrase used to generate the keys.
 	 * @param {Crypto} crypto The crypto object to use.
+	 * @param {string} passphrase The passphrase used to generate the keys.
 	 */
-	public static async create(bip39Phrase: string, crypto: Crypto) {
+	public static async create(crypto: Crypto, bip39Phrase: string) {
 
 		// Validate that the bip39 phrase is valid.
 		if (!validateMnemonic(bip39Phrase)) {
-			throw new Error("invalid BIP39 phrase");
+			throw new Error("Invalid BIP39 phrase.");
 		}
 
-		const result = new Encrypter();
+		const result = new RSAEncrypter();
 		const rsa = new RSAKey(bip39Phrase);
 		const kp = await rsa.generateNew(2048);
 
@@ -168,5 +168,122 @@ export class Encrypter {
 	public async peerId(): Promise<PeerId> {
 		const priv = await fromJwk(this.privKeyJwk);
 		return PeerId.createFromPrivKey(cryptoKeys.marshalPrivateKey(priv));
+	}
+}
+
+export class AESEncrypter {
+	private crypto: Crypto;
+
+	private key: CryptoKey;
+
+	private constructor() { }
+
+	/**
+	 * Create an AESEncrypter with a generated key.
+	 * 
+	 * @param {Crypto} crypto The crypto object to use.
+	 * @returns {Promise<AESEncrypter>} The encrypter.
+	 */
+	public static async create(crypto: Crypto): Promise<AESEncrypter> {
+		const result = new AESEncrypter();
+		result.crypto = crypto;
+
+		const key = await crypto.subtle.generateKey(
+			{
+				name: 'AES-GCM',
+				length: 256
+			},
+			true,
+			['encrypt', 'decrypt']
+		);
+
+		result.key = key;
+
+		return result;
+	}
+
+	/**
+	 * Create an AESEncrypter with a key given in JWK format.
+	 * 
+	 * @param {Crypto} crypto The crypto object to use.
+	 * @param {JsonWebKey} key The key.
+	 * @returns {Promise<AESEncrypter>} The encrypter.
+	 */
+	public static async createFromJwk(crypto: Crypto, key: JsonWebKey): Promise<AESEncrypter> {
+		const result = new AESEncrypter();
+		result.crypto = crypto;
+
+		const k = await crypto.subtle.importKey(
+			'jwk',
+			key,
+			{
+				name: 'AES-GCM',
+				length: 256
+			},
+			true,
+			['encrypt', 'decrypt']
+		);
+
+		result.key = k;
+
+		return result;
+	}
+
+	/**
+	 * Export the key.
+	 * 
+	 * @returns {Promise<JsonWebKey>} The key as a JWK.
+	 */
+	public async exportKey(): Promise<JsonWebKey> {
+		return this.crypto.subtle.exportKey('jwk', this.key);
+	}
+
+	/**
+	 * Encrypt the given data.
+	 * 
+	 * @param {string} data The data to encrypt.
+	 * @returns {Promise<string>} The encrypted data.
+	 */
+	public async encrypt(data: string): Promise<string> {
+		const iv = this.crypto.getRandomValues(new Uint8Array(12));
+		const ciphertext = await this.crypto.subtle.encrypt(
+			{
+				name: 'AES-GCM',
+				iv
+			},
+			this.key,
+			new TextEncoder().encode(data)
+		);
+
+		// Combine IV and ciphertext.
+		const result = new Uint8Array(iv.byteLength + ciphertext.byteLength);
+		result.set(iv);
+		result.set(new Uint8Array(ciphertext), iv.byteLength);
+
+		return arrayBufferToBase64(result);
+	}
+
+	/**
+	 * Decrypt the given data.
+	 * 
+	 * @param {string} encryptedData The encrypted data.
+	 * @returns {Promise<string>} The decrypted data.
+	 */
+	public async decrypt(encryptedData: string): Promise<string> {
+		const data = base64ToArrayBuffer(encryptedData);
+
+		const iv = data.slice(0, 12);
+		const ciphertext = data.slice(12);
+
+		const decrypted = await this.crypto.subtle.decrypt(
+			{
+				name: 'AES-GCM',
+				iv
+			},
+			this.key,
+			ciphertext
+		);
+
+		return new TextDecoder().decode(decrypted);
 	}
 }

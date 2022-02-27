@@ -269,14 +269,14 @@ describe("Unit tests", function () {
         .to.be.revertedWith("must stake for at least a week");
 
 
-      expect(await this.infoExchange.connect(this.signers.admin).timeUntilEvict()).to.be.greaterThan(600000);
+      expect((await this.infoExchange.connect(this.signers.admin).timeUntilEvict()).gt(600000)).to.be.true;
 
       // Increase time by 5 days
       await hre.ethers.provider.send("evm_increaseTime", [60 * 60 * 24 * 5]);
       await hre.ethers.provider.send("evm_mine", []);
 
-      expect(await this.infoExchange.connect(this.signers.admin).timeUntilEvict()).to.be.lessThan(190000);
-      expect(await this.infoExchange.connect(this.signers.admin).timeUntilEvict()).to.be.greaterThan(170000);
+      expect((await this.infoExchange.connect(this.signers.admin).timeUntilEvict()).lt(190000)).to.be.true;
+      expect((await this.infoExchange.connect(this.signers.admin).timeUntilEvict()).gt(170000)).to.be.true;
 
       // Increase time by 5 days
       await hre.ethers.provider.send("evm_increaseTime", [60 * 60 * 24 * 5]);

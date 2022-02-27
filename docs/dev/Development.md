@@ -48,6 +48,15 @@ To run the app unit tests, run:
 
     npm run test:app
 
+### Run a single app unit test
+
+To run an indivdual app unit test, run:
+
+    npm exec -w app -- ts-mocha --timeout 10000 --type-check -p tsconfig.json src/infoex/v1/encryption.spec.ts -g 'should generate'
+
+Or add `.only` to the `describe` or `it` block in the `.spec.ts` to run only the
+specified test.
+
 ## Start the app (dev mode)
 
 To start just the app in dev mode, run:
