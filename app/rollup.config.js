@@ -37,6 +37,7 @@ export default {
 		format: 'iife',
 		name: 'app',
 		file: 'public/build/bundle.js',
+		intro: 'const global = window;',
 
 		// Required for IPFS dynamic import.
 		inlineDynamicImports: true
@@ -53,6 +54,11 @@ export default {
 		// we'll extract any component CSS out into
 		// a separate file - better for performance
 		css({ output: 'bundle.css' }),
+
+		// inject({
+		// 	process: 'process',
+		// 	Buffer: ['buffer', 'Buffer'],
+		// }),
 
 		// If you have external dependencies installed from
 		// npm, you'll most likely need these plugins. In

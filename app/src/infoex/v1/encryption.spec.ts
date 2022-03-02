@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { describe } from "mocha";
-import { AESEncrypter, RSAEncrypter } from "./encryption";
+import { AESEncrypter, RSAEncrypter, sha256 } from "./encryption";
 
 import { webcrypto } from 'crypto'
 
@@ -73,4 +73,13 @@ describe("RSAEncrypter", async () => {
 		expect(decrypted).to.equal("Hello World");
 	});
 
+});
+
+describe("Hash", async () => {
+	it("should hash", async () => {
+		const data = "Hello, world!";
+		const digest = await sha256(webcrypto as any, data);
+		console.log(`digest: ${digest}`);
+		expect(digest).to.equal("315f5bdb76d078c43b8ac0064e4a0164612b1fce77c869345bfc94c75894edd3");
+	});
 });

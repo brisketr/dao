@@ -8,11 +8,16 @@
     "start": "sirv public --no-clear",
     "test": "ts-mocha --timeout 10000 --type-check -p tsconfig.json src/**/*.spec.ts",
     "check": "svelte-check --tsconfig ./tsconfig.json",
-    "build:ipfs": "esbuild ../node_modules/ipfs-core --bundle --format=esm --sourcemap --main-fields=browser,module,main --inject:./src/node-globals.js --define:process.env.NODE_ENV='\"production\"' --splitting --outdir=./src/modules/ipfs-core"
+    "build:ipfs:old": "esbuild ../node_modules/ipfs-core --bundle --format=esm --sourcemap --main-fields=browser,module,main --inject:./src/node-globals.js --define:process.env.NODE_ENV='\"production\"' --splitting --outdir=./src/modules/ipfs-core",
+    "build:modules": "node build-modules.js",
+    "build:bip39": "esbuild ../node_modules/bip39 --bundle --format=esm --sourcemap --main-fields=browser,module,main --inject:./src/node-globals.js --define:process.env.NODE_ENV='\"production\"' --splitting --outdir=./src/modules/bip39"
   },
   "devDependencies": {
     "@brisket-dao/core": "^1.0.0",
+    "@esbuild-plugins/node-modules-polyfill": "^0.1.4",
     "@rollup/plugin-commonjs": "^17.1.0",
+    "@rollup/plugin-inject": "^4.0.4",
+    "@rollup/plugin-json": "^4.1.0",
     "@rollup/plugin-node-resolve": "^11.2.1",
     "@rollup/plugin-typescript": "^8.3.0",
     "@tsconfig/svelte": "^2.0.0",
@@ -24,13 +29,14 @@
     "ethers": "^5.5.1",
     "ipfs-core": "^0.14.1",
     "mocha": "^9.2.1",
-    "process": "^0.11.10",
     "rollup": "^2.68.0",
     "rollup-plugin-css-only": "^3.1.0",
     "rollup-plugin-livereload": "^2.0.5",
+    "rollup-plugin-node-polyfills": "^0.2.1",
     "rollup-plugin-svelte": "^7.1.0",
     "rollup-plugin-terser": "^7.0.2",
     "seededrsa": "^1.1.1",
+    "stream-browserify": "^3.0.0",
     "svelte": "^3.46.4",
     "svelte-check": "^2.4.5",
     "svelte-preprocess": "^4.10.3",
@@ -38,7 +44,6 @@
     "ts-mocha": "^9.0.2",
     "tslib": "^2.0.0",
     "typescript": "~4.4.0",
-    "util": "^0.12.4",
     "web3modal": "^1.9.4"
   },
   "dependencies": {

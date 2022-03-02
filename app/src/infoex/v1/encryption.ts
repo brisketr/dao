@@ -25,6 +25,22 @@ function base64ToArrayBuffer(base64) {
 	return bytes.buffer;
 }
 
+function arrayBufferToHex(buffer) {
+	return Array.prototype.map.call(
+		new Uint8Array(buffer),
+		x => ('00' + x.toString(16)).slice(-2)
+	).join('');
+}
+
+/**
+ * @param {JsonWebKey} a The public key.
+ * @param {JsonWebKey} b The public key to compare to.
+ * @returns {Promise<boolean>} true if given key matches our public key.
+ */
+export async function keysAreEqual(a: JsonWebKey, b: JsonWebKey): Promise<boolean> {
+	return a.kty === b.kty && a.n === b.n && a.e === b.e;
+}
+
 export class RSAEncrypter {
 	private privKey: CryptoKey;
 	private pubKey: CryptoKey;
@@ -86,15 +102,6 @@ export class RSAEncrypter {
 
 		result.crypto = crypto;
 		return result;
-	}
-
-	/**
-	 * @param {JsonWebKey} publicKey The public key.
-	 * @returns {Promise<boolean>} true if given key matches our public key.
-	 */
-	public async matchesPublicKey(publicKey: JsonWebKey): Promise<boolean> {
-		const pubKey = await this.exportPublicKey();
-		return pubKey.kty === publicKey.kty && pubKey.n === publicKey.n && pubKey.e === publicKey.e;
 	}
 
 	/**
@@ -286,4 +293,22 @@ export class AESEncrypter {
 
 		return new TextDecoder().decode(decrypted);
 	}
+}
+
+/**
+ * Compute SHA256 of the given string and return the result as a hex string.
+ * 
+ * @param {Crypto} crypto The crypto object to use.
+ * @param {string} data The data to hash.
+ * @returns {Promise<string>} The hash.
+ */
+export async function sha256(crypto: Crypto, data: string): Promise<string> {
+	const hash = await crypto.subtle.digest(
+		{
+			name: 'SHA-256'
+		},
+		new TextEncoder().encode(data)
+	);
+
+	return arrayBufferToHex(hash);
 }
