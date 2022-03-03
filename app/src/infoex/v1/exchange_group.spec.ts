@@ -115,7 +115,7 @@ class MockExchangeContract implements ExchangeContract {
 }
 
 
-describe.only("Exchange Group", async () => {
+describe("Exchange Group", async () => {
 	let globalData: MockGlobalStore;
 	let localData: MockLocalDataStore;
 	let exchange: MockExchangeContract;
