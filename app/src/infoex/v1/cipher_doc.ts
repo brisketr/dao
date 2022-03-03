@@ -174,6 +174,12 @@ export async function decryptInfoCipherDoc(
 	// succeed, throw an error.
 	let aesJsk: JsonWebKey;
 
+	if (cipherDoc.encryptedDocAESKeys === undefined
+		|| cipherDoc.encryptedDocAESKeys === null
+		|| cipherDoc.encryptedDocAESKeys.length === 0) {
+		throw new NoKeyFoundError();
+	}
+
 	for (const encryptedAesJskJson of cipherDoc.encryptedDocAESKeys) {
 		try {
 			const aesJskJson = await rsaEncrypter.decrypt(encryptedAesJskJson);

@@ -35,9 +35,9 @@ function arrayBufferToHex(buffer) {
 /**
  * @param {JsonWebKey} a The public key.
  * @param {JsonWebKey} b The public key to compare to.
- * @returns {Promise<boolean>} true if given key matches our public key.
+ * @returns {boolean} true if given key matches our public key.
  */
-export async function keysAreEqual(a: JsonWebKey, b: JsonWebKey): Promise<boolean> {
+export function keysAreEqual(a: JsonWebKey, b: JsonWebKey): boolean {
 	return a.kty === b.kty && a.n === b.n && a.e === b.e;
 }
 

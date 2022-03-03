@@ -1,5 +1,5 @@
 import type { BigNumber } from "ethers";
-import { decryptInfoCipherDoc, deserializeInfoCipherDoc, encryptInfoDoc, InfoCipherDoc, InfoDoc, serializeInfoCipherDoc } from "./cipher_doc";
+import { decryptInfoCipherDoc, deserializeInfoCipherDoc, encryptInfoDoc, InfoCipherDoc, InfoDoc, NoKeyFoundError, serializeInfoCipherDoc } from "./cipher_doc";
 import { keysAreEqual, RSAEncrypter, sha256 } from "./encryption";
 
 type DataStoreKey = string;
@@ -165,9 +165,9 @@ export async function cipherDoc(
 	logInfo(`Getting CID for staker ${address}...`);
 	const cid = await contract.cid(address);
 
-	if (cid === undefined || cid === "") {
+	if (cid === undefined || cid === "" || cid === null) {
 		logWarn(`CID for staker ${address} is undefined or empty.`);
-		return {} as InfoCipherDoc;
+		return null;
 	}
 
 	// Get the cipher doc.
@@ -214,6 +214,11 @@ export async function infoDoc(
 	// Get the cipher doc.
 	const cdoc = await cipherDoc(globalData, contract, address);
 
+	if (cdoc === null) {
+		logWarn(`No cipher doc for staker ${address}`);
+		return null;
+	}
+
 	return decryptInfoCipherDoc(crypto, identity.encrypter, cdoc);
 }
 
@@ -240,9 +245,20 @@ export async function infoDocs(
 
 	// Get InfoDoc for each staker.
 	await Promise.all(topStakers.map(async staker => {
-		logInfo(`Getting info doc for staker ${staker}...`);
-		const doc = await infoDoc(crypto, globalData, contract, identity, staker.address);
-		result.set(staker.address, doc);
+		logInfo(`Getting info doc for staker ${staker.address}...`);
+		try {
+			const doc = await infoDoc(crypto, globalData, contract, identity, staker.address);
+
+			if (doc !== null) {
+				result.set(staker.address, doc);
+			}
+		} catch (e) {
+			if (e instanceof NoKeyFoundError) {
+				logWarn(`We do not (yet?) have the key to decrypt info doc for staker ${staker.address}`);
+			} else {
+				logError(`Failed to get info doc for staker ${staker.address}`, e);
+			}
+		}
 	}));
 
 	return result;
@@ -268,30 +284,28 @@ export async function cipherDocs(
 	// Get InfoCipherDoc for each staker.
 	await Promise.all(topStakers.map(async staker => {
 		const doc = await cipherDoc(globalData, contract, staker.address);
-		result.set(staker.address, doc);
+
+		if (doc !== null) {
+			result.set(staker.address, doc);
+		}
 	}));
 
 	return result;
 }
 
 /**
- * Publishes new information off chain.
+ * Get the set of keys that are allowed to access info in the exchange.
  * 
- * @param {Crypto} crypto The crypto object to use.
- * @param {GlobalDataStore} The global store.
- * @param {Identity} identity The identity of the data consumer.
- * @param {ExchangeContract} The contract holding on-chain oracle data.
- * @param {InfoDoc} The doc to encrypt and publish.
- * @returns {Promise<string>} The CID of the published cipher doc.
+ * @param {GlobalDataStore} globalData Global store.
+ * @param {ExchangeContract} contract Contract holding on-chain oracle data.
+ * @param {Identity} identity The identity of the data publisher.
+ * @returns {Promise<JsonWebKey[]>} The set of keys that are allowed to access info in the exchange.
  */
-export async function publishIpfs(
-	crypto: Crypto,
+async function allowedKeys(
 	globalData: GlobalDataStore,
-	identity: Identity,
 	contract: ExchangeContract,
-	doc: InfoDoc
-): Promise<string> {
-	logInfo("Encrypting and publishing info doc to IPFS...");
+	identity: Identity,
+): Promise<JsonWebKey[]> {
 	const topStakers = await contract.topStakers();
 
 	// Get allowed keys.
@@ -299,6 +313,12 @@ export async function publishIpfs(
 	const allowedKeys: JsonWebKey[] = await Promise.all(topStakers.map(async staker => {
 		try {
 			const cdoc = await cipherDoc(globalData, contract, staker.address);
+
+			if (cdoc === null) {
+				logWarn(`No cipher doc for staker ${staker.address}`);
+				return null;
+			}
+
 			return cdoc.ownerRSAPubKey;
 		} catch (e) {
 			logError("Failed to retrieve cipher doc to resolve RSA public key", staker.address, e);
@@ -316,6 +336,30 @@ export async function publishIpfs(
 		logInfo("Own key not in allowed keys, adding it.");
 		validKeys.push(ownPubKey);
 	}
+
+	// Sort valid keys by key.n.
+	return validKeys.sort((a, b) => a.n.localeCompare(b.n));
+}
+
+/**
+ * Publishes new information off chain.
+ * 
+ * @param {Crypto} crypto The crypto object to use.
+ * @param {GlobalDataStore} The global store.
+ * @param {Identity} identity The identity of the data publisher.
+ * @param {ExchangeContract} The contract holding on-chain oracle data.
+ * @param {InfoDoc} The doc to encrypt and publish.
+ * @returns {Promise<string>} The CID of the published cipher doc.
+ */
+export async function publishIpfs(
+	crypto: Crypto,
+	globalData: GlobalDataStore,
+	identity: Identity,
+	contract: ExchangeContract,
+	doc: InfoDoc
+): Promise<string> {
+	logInfo("Encrypting and publishing info doc to IPFS...");
+	const validKeys = await allowedKeys(globalData, contract, identity);
 
 	// Encrypt the doc.
 	logInfo("Encrypting info doc...");
@@ -335,7 +379,7 @@ export async function publishIpfs(
 		const cdoc = await cipherDoc(globalData, contract, identity.address);
 
 		// If IPNS is set, update IPNS to point to new CID.
-		if (cdoc.ipns === "" || cdoc.ipns === null || cdoc.ipns === undefined) {
+		if (cdoc === null || cdoc.ipns === "" || cdoc.ipns === null || cdoc.ipns === undefined) {
 			logInfo(`No IPNS set for ${identity.address}, will init IPNS.`);
 
 			// Update IPNS.
@@ -397,10 +441,60 @@ export async function needsOnChainCidUpdate(
 ): Promise<boolean> {
 	const cid = await contract.cid(identity.address);
 
-	if (cid === "") {
+	if (cid === "" || cid === null || cid === undefined) {
 		return true;
 	}
 
 	const cdoc = await cipherDoc(globalData, contract, identity.address);
 	return !(await publishedPubkeyMatches(globalData, contract, identity.address, await identity.encrypter.exportPublicKey()));
+}
+
+/**
+ * Update the on-chain CID.
+ * 
+ * @param {ExchangeContract} contract The contract holding on-chain oracle data.
+ * @param {string} cid The CID to update.
+ * @return {Promise<void>}
+ */
+export async function updateOnChainCid(
+	contract: ExchangeContract,
+	cid: string
+): Promise<void> {
+	logInfo(`Updating on-chain CID to ${cid}...`);
+
+	return await contract.registerCid(cid);
+}
+
+/**
+ * Check if the identity should re-publish it's cipher doc. Conditions include:
+ * 
+ * - Set of allowed keys has changed.
+ * 
+ * @param {GlobalDataStore} globalData The global store.
+ * @param {ExchangeContract} contract The contract holding on-chain oracle data.
+ * @param {Identity} identity The identity of the data publisher.
+ * @returns {Promise<boolean>} True if the identity should re-publish it's cipher doc.
+ */
+export async function needsCipherDocUpdate(
+	globalData: GlobalDataStore,
+	contract: ExchangeContract,
+	identity: Identity,
+): Promise<boolean> {
+	const validKeys: JsonWebKey[] = await allowedKeys(globalData, contract, identity);
+	const cdoc = await cipherDoc(globalData, contract, identity.address);
+	const currentlyAllowed: JsonWebKey[] = cdoc.allowedRSAPublicKeys;
+
+	// Check if the set of allowed keys has changed.
+	if (currentlyAllowed.length !== validKeys.length) {
+		return true;
+	}
+
+	// Check if any of the allowed keys has changed.
+	for (const key of validKeys) {
+		if (!currentlyAllowed.find(k => keysAreEqual(k, key))) {
+			return true;
+		}
+	}
+
+	return false;
 }
