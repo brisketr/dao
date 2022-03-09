@@ -1,11 +1,14 @@
 import { expect } from "chai";
-import { before, describe } from "mocha";
-
-import { webcrypto } from 'crypto'
-import { acknowledgeInfo, cipherDocs, computeGroupInfoHash, ExchangeContract, GlobalDataStore, Identity, infoDocs, LocalDataStore, needsCipherDocUpdate, needsOnChainCidUpdate, newInfoAvailable, publishIpfs, Staker, updateOnChainCid } from "./exchange_group";
+import { webcrypto } from 'crypto';
 import { BigNumber } from "ethers";
-import { RSAEncrypter } from "./encryption";
+import { before, describe } from "mocha";
+import { pem2jwk } from 'pem-jwk';
+import RSAKey from 'seededrsa';
 import type { InfoDoc } from "./cipher_doc";
+import { RSAEncrypter } from "./encryption";
+import type { ExchangeContract, Staker } from './exchange_contract';
+import { acknowledgeInfo, cipherDocs, computeGroupInfoHash, Identity, infoDocs, needsCipherDocUpdate, needsOnChainCidUpdate, newInfoAvailable, publishIpfs, updateOnChainCid } from "./exchange_group";
+import type { GlobalDataStore, LocalDataStore } from './storage';
 
 const allowedPhrases = [
 	"cruel verify defy trust mansion catch avoid enhance valid giraffe scare possible cricket useless interest",
@@ -131,7 +134,7 @@ describe("Exchange Group", async () => {
 		accountInfoDocs = [];
 
 		for (let i = 0; i < allowedPhrases.length; i++) {
-			const encrypter: RSAEncrypter = await RSAEncrypter.create(webcrypto as any, allowedPhrases[i]);
+			const encrypter: RSAEncrypter = await RSAEncrypter.create(webcrypto as any, RSAKey, pem2jwk, allowedPhrases[i]);
 			const address = randomKey();
 
 			stakers.push({
@@ -153,7 +156,7 @@ describe("Exchange Group", async () => {
 		}
 
 		for (let i = 0; i < notAllowedPhrases.length; i++) {
-			const encrypter: RSAEncrypter = await RSAEncrypter.create(webcrypto as any, notAllowedPhrases[i]);
+			const encrypter: RSAEncrypter = await RSAEncrypter.create(webcrypto as any, RSAKey, pem2jwk, notAllowedPhrases[i]);
 			const address = randomKey();
 
 			notAllowedIdentities.push({
@@ -212,11 +215,11 @@ describe("Exchange Group", async () => {
 		expect(docs2.get(allowedIdentities[1].address)).to.be.deep.equal(accountInfoDocs[1]);
 
 		// Publish doc again for account 0.
-        expect(await needsCipherDocUpdate(globalData, exchange, allowedIdentities[0])).to.be.true;
+		expect(await needsCipherDocUpdate(globalData, exchange, allowedIdentities[0])).to.be.true;
 		globalData.setActiveId(allowedIdentities[0].address);
 		await publishIpfs(webcrypto as any, globalData, allowedIdentities[0], exchange, accountInfoDocs[0]);
 		expect(await needsOnChainCidUpdate(globalData, exchange, allowedIdentities[1])).to.be.false;
-        expect(await needsCipherDocUpdate(globalData, exchange, allowedIdentities[0])).to.be.false;
+		expect(await needsCipherDocUpdate(globalData, exchange, allowedIdentities[0])).to.be.false;
 
 		// Verify that account 1 can access both docs.
 		const docs3 = await infoDocs(webcrypto as any, globalData, exchange, allowedIdentities[1]);
@@ -245,16 +248,16 @@ describe("Exchange Group", async () => {
 		expect(docs5.get(allowedIdentities[2].address)).to.be.deep.equal(accountInfoDocs[2]);
 
 		// Publish doc again for accounts 0 and 1.
-        expect(await needsCipherDocUpdate(globalData, exchange, allowedIdentities[0])).to.be.true;
-        expect(await needsCipherDocUpdate(globalData, exchange, allowedIdentities[1])).to.be.true;
+		expect(await needsCipherDocUpdate(globalData, exchange, allowedIdentities[0])).to.be.true;
+		expect(await needsCipherDocUpdate(globalData, exchange, allowedIdentities[1])).to.be.true;
 		globalData.setActiveId(allowedIdentities[0].address);
 		await publishIpfs(webcrypto as any, globalData, allowedIdentities[0], exchange, accountInfoDocs[0]);
 		expect(await needsOnChainCidUpdate(globalData, exchange, allowedIdentities[0])).to.be.false;
-        expect(await needsCipherDocUpdate(globalData, exchange, allowedIdentities[0])).to.be.false;
+		expect(await needsCipherDocUpdate(globalData, exchange, allowedIdentities[0])).to.be.false;
 		globalData.setActiveId(allowedIdentities[1].address);
 		await publishIpfs(webcrypto as any, globalData, allowedIdentities[1], exchange, accountInfoDocs[1]);
 		expect(await needsOnChainCidUpdate(globalData, exchange, allowedIdentities[1])).to.be.false;
-        expect(await needsCipherDocUpdate(globalData, exchange, allowedIdentities[1])).to.be.false;
+		expect(await needsCipherDocUpdate(globalData, exchange, allowedIdentities[1])).to.be.false;
 
 		// Verify that account 2 can access all three docs.
 		const docs6 = await infoDocs(webcrypto as any, globalData, exchange, allowedIdentities[2]);

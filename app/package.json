@@ -8,9 +8,7 @@
     "start": "sirv public --no-clear",
     "test": "ts-mocha --timeout 20000 --type-check -p tsconfig.json src/**/*.spec.ts",
     "check": "svelte-check --tsconfig ./tsconfig.json",
-    "build:ipfs:old": "esbuild ../node_modules/ipfs-core --bundle --format=esm --sourcemap --main-fields=browser,module,main --inject:./src/node-globals.js --define:process.env.NODE_ENV='\"production\"' --splitting --outdir=./src/modules/ipfs-core",
-    "build:modules": "node build-modules.js",
-    "build:bip39": "esbuild ../node_modules/bip39 --bundle --format=esm --sourcemap --main-fields=browser,module,main --inject:./src/node-globals.js --define:process.env.NODE_ENV='\"production\"' --splitting --outdir=./src/modules/bip39"
+    "build:modules": "node build-modules.js"
   },
   "devDependencies": {
     "@brisket-dao/core": "^1.0.0",

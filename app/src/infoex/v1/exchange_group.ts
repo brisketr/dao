@@ -1,53 +1,12 @@
-import type { BigNumber } from "ethers";
 import { decryptInfoCipherDoc, deserializeInfoCipherDoc, encryptInfoDoc, InfoCipherDoc, InfoDoc, NoKeyFoundError, serializeInfoCipherDoc } from "./cipher_doc";
 import { keysAreEqual, RSAEncrypter, sha256 } from "./encryption";
-
-type DataStoreKey = string;
-type DataStoreName = string;
-
-function logInfo(...args: any[]): void {
-	console.log("exchange_group - INFO - ", ...args);
-}
-
-function logError(...args: any[]): void {
-	console.error("exchange_group - ERROR - ", ...args);
-}
-
-function logWarn(...args: any[]): void {
-	console.warn("exchange_group - WARN - ", ...args);
-}
-
-export interface GlobalDataStore {
-	put(value: string): Promise<DataStoreKey>;
-	get(key: DataStoreKey): Promise<string>;
-	publishName(subKey: DataStoreKey, contentKey: DataStoreKey): Promise<DataStoreName>;
-	resolveName(name: DataStoreName, subKey: DataStoreKey): Promise<DataStoreKey>;
-}
-
-export interface LocalDataStore {
-	put(key: DataStoreKey, value: string): Promise<void>;
-	get(key: DataStoreKey): Promise<string>;
-	save(): Promise<void>;
-	load(): Promise<void>;
-}
-
-export interface Staker {
-	address: string;
-	staked: BigNumber;
-}
+import type { ExchangeContract } from "./exchange_contract";
+import { logError, logInfo, logWarn } from "./logging";
+import type { GlobalDataStore, LocalDataStore } from "./storage";
 
 export interface Identity {
 	address: string;
 	encrypter: RSAEncrypter;
-}
-
-export interface ExchangeContract {
-	topStakers(): Promise<Staker[]>;
-	minStake(): Promise<BigNumber>;
-	timeUntilEvict(): Promise<BigNumber>;
-	isFull(): Promise<boolean>;
-	cid(address: string): Promise<string>;
-	registerCid(cid: string): Promise<void>;
 }
 
 export async function inExchange(

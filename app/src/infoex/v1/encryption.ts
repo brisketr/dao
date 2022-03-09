@@ -1,10 +1,3 @@
-import { validateMnemonic } from 'bip39';
-import cryptoKeys from 'libp2p-crypto/src/keys';
-import PeerId from 'peer-id';
-import { pem2jwk } from 'pem-jwk';
-import RSAKey from 'seededrsa';
-const fromJwk = cryptoKeys.supportedKeys.rsa.fromJwk;
-
 function arrayBufferToBase64(buffer) {
 	var binary = '';
 	var bytes = new Uint8Array(buffer);
@@ -30,6 +23,10 @@ function arrayBufferToHex(buffer) {
 		new Uint8Array(buffer),
 		x => ('00' + x.toString(16)).slice(-2)
 	).join('');
+}
+
+export interface Bip39 {
+	validateMnemonic(mnemonic: string): boolean;
 }
 
 /**
@@ -59,17 +56,18 @@ export class RSAEncrypter {
 	 * Encrypter factory method.
 	 * 
 	 * @param {Crypto} crypto The crypto object to use.
-	 * @param {string} passphrase The passphrase used to generate the keys.
+	 * @param {any} rsaKey The RSA implementation to use.
+	 * @param {any} pem2jwk The pem2jwk implementation to use.
+	 * @param {string} phrase The passphrase used to generate the keys.
 	 */
-	public static async create(crypto: Crypto, bip39Phrase: string) {
-
-		// Validate that the bip39 phrase is valid.
-		if (!validateMnemonic(bip39Phrase)) {
-			throw new Error("Invalid BIP39 phrase.");
-		}
-
+	public static async create(
+		crypto: Crypto,
+		rsaKey: any,
+		pem2jwk: any,
+		phrase: string
+	) {
 		const result = new RSAEncrypter();
-		const rsa = new RSAKey(bip39Phrase);
+		const rsa = new rsaKey(phrase);
 		const kp = await rsa.generateNew(2048);
 
 		// Import private key.
@@ -172,7 +170,13 @@ export class RSAEncrypter {
 	 * 
 	 * @returns {Promise<PeerId>} The PeerId.
 	 */
-	public async peerId(): Promise<PeerId> {
+	public async peerId(
+		cryptoKeys: any,
+		PeerId: any
+	): Promise<any> {
+		// import cryptoKeys from 'libp2p-crypto/src/keys';
+		// import PeerId from 'peer-id';
+		const fromJwk = cryptoKeys.supportedKeys.rsa.fromJwk;
 		const priv = await fromJwk(this.privKeyJwk);
 		return PeerId.createFromPrivKey(cryptoKeys.marshalPrivateKey(priv));
 	}

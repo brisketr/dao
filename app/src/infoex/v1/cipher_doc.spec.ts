@@ -1,6 +1,8 @@
 import { expect } from "chai";
 import { webcrypto } from 'crypto';
 import { describe } from "mocha";
+import { pem2jwk } from 'pem-jwk';
+import RSAKey from 'seededrsa';
 import { decryptInfoCipherDoc, encryptInfoDoc, InfoCipherDoc, InfoDoc, NoKeyFoundError } from "./cipher_doc";
 import { RSAEncrypter } from "./encryption";
 
@@ -18,8 +20,8 @@ const notAllowedPhrases = [
 describe("Group Encryption", async () => {
 
 	it("all in group should be able to decrypt, none out of group can", async () => {
-		const allowedEncrypters = await Promise.all(allowedPhrases.map(phrase => RSAEncrypter.create(webcrypto as any, phrase)));
-		const notAllowedEncrypters = await Promise.all(notAllowedPhrases.map(phrase => RSAEncrypter.create(webcrypto as any, phrase)));
+		const allowedEncrypters = await Promise.all(allowedPhrases.map(phrase => RSAEncrypter.create(webcrypto as any, RSAKey, pem2jwk, phrase)));
+		const notAllowedEncrypters = await Promise.all(notAllowedPhrases.map(phrase => RSAEncrypter.create(webcrypto as any, RSAKey, pem2jwk, phrase)));
 
 		const infoDoc: InfoDoc = {
 			accounts: [

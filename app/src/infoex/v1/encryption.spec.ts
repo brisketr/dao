@@ -1,8 +1,11 @@
 import { expect } from "chai";
+import { webcrypto } from 'crypto';
+import cryptoKeys from 'libp2p-crypto/src/keys';
 import { describe } from "mocha";
+import PeerId from 'peer-id';
+import { pem2jwk } from 'pem-jwk';
+import RSAKey from 'seededrsa';
 import { AESEncrypter, RSAEncrypter, sha256 } from "./encryption";
-
-import { webcrypto } from 'crypto'
 
 describe("AESEncrypter", async () => {
 	it("should decrypt what it encrypts", async () => {
@@ -30,29 +33,16 @@ describe("RSAEncrypter", async () => {
 	let bobPhrase = "shock inch giant ordinary upgrade category say cloth brand budget they gap banana leisure provide";
 
 	it("should generate valid PeerId", async () => {
-		const alice = await RSAEncrypter.create(webcrypto as any, alicePhrase);
-		const peerId = await alice.peerId();
+		const alice = await RSAEncrypter.create(webcrypto as any, RSAKey, pem2jwk, alicePhrase);
+		const peerId = await alice.peerId(cryptoKeys, PeerId);
 
 		expect(peerId.toString()).to.equal('bafzbeibpbkzcjnphscaphj5ypelvcqc57wuwif2zy3vvttugtuwwfzrp2q');
 
 	});
 
-	it("should throw error if BIP39 phrase is invalid", async () => {
-		let err = null;
-
-		try {
-			await RSAEncrypter.create(webcrypto as any, 'bad phrase');
-		} catch (e) {
-			err = e;
-		}
-
-		expect(err).to.not.be.null;
-		expect(err.message).to.equal("Invalid BIP39 phrase.");
-	});
-
 	it("should decrypt what it encrypts", async () => {
-		const alice = await RSAEncrypter.create(webcrypto as any, alicePhrase);
-		const bob = await RSAEncrypter.create(webcrypto as any, bobPhrase);
+		const alice = await RSAEncrypter.create(webcrypto as any, RSAKey, pem2jwk, alicePhrase);
+		const bob = await RSAEncrypter.create(webcrypto as any, RSAKey, pem2jwk, bobPhrase);
 
 		// Get public key.
 		const pubKey = await bob.exportPublicKey();
