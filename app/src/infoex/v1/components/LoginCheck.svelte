@@ -1,7 +1,7 @@
 <script lang="ts">
-import { onMount } from "svelte";
-import { push } from "svelte-spa-router";
-import { locked } from "../stores";
+	import { onMount } from "svelte";
+	import { push } from "svelte-spa-router";
+	import { locked } from "../stores";
 
 	onMount(async () => {
 		if ($locked) {
@@ -9,5 +9,5 @@ import { locked } from "../stores";
 		} else {
 			push("/brie/dashboard");
 		}
-	})
+	});
 </script>

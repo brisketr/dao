@@ -1,26 +1,24 @@
 <script lang="ts">
 	import { onMount } from "svelte";
-import { push } from "svelte-spa-router";
+	import { push } from "svelte-spa-router";
 	import { connected, contract } from "../../../web3/stores.js";
 	import type { InfoDoc } from "../cipher_doc.js";
 	import { connect } from "../connect.js";
 	import { EthersExchangeContract } from "../exchange_contract_ethers.js";
 	import { infoDocs } from "../exchange_group";
 	import {
+exchangeContractGenesis,
 		globalData,
 		identity,
 		ipfs,
-		ipfsConneced as ipfsConnected,
+		ipfsConnected,
 		ipfsConnecting,
-locked,
+		locked,
 	} from "../stores";
+	import StakingDetails from "./StakingDetails.svelte";
 
 	let nodeId = "";
 	let docs: Map<string, InfoDoc> = new Map();
-
-	$: exchangeContract = new EthersExchangeContract(
-		$contract.InfoExchangeGenesis
-	);
 
 	$: {
 		if ($ipfsConnected) {
@@ -29,25 +27,32 @@ locked,
 	}
 
 	$: {
-		if ($connected && $ipfsConnected && !$locked) {
-			infoDocs(crypto, $globalData, exchangeContract, $identity).then(
+		if ($connected && $ipfsConnected && !$locked && $exchangeContractGenesis) {
+			infoDocs(crypto, $globalData, $exchangeContractGenesis, $identity).then(
 				(d) => (docs = d)
 			);
 		}
 	}
 
+	$: {
+		if (
+			!$locked &&
+			$identity &&
+			$ipfsConnected === false &&
+			$ipfsConnecting == false
+		) {
+			connect();
+		}
+	}
+
 	onMount(async () => {
 		if (!$connected || $locked) {
-			push('/brie/welcome');
+			push("/brie/welcome");
 			return;
-		}
-
-		if ($ipfsConnected === false && $ipfsConnecting == false) {
-			await connect();
 		}
 	});
 </script>
 
-<p>Dashboard</p>
+<h2>Genesis Exchange - Dashboard</h2>
 
-<p>Node ID: {nodeId}</p>
+<StakingDetails {nodeId} />

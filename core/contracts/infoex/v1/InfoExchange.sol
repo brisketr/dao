@@ -11,7 +11,7 @@ contract InfoExchange {
 
     IERC20 private _token;
 
-    uint8 public constant TOP_STAKER_COUNT = 20;
+    uint8 public constant TOP_STAKER_COUNT = 10;
 
     mapping(address => uint256) private _stakedBalance;
     mapping(address => uint256) private _stakedTimestamps;
@@ -83,6 +83,24 @@ contract InfoExchange {
 
         // Emit unstake event.
         emit Unstaked(staker, amount);
+    }
+
+	/**
+     * @dev Return amount of time until the staker can unstake.
+     *
+     * @param staker The staker's address.
+     * @return The amount of time until the staker can unstake.
+     */
+    function timeUntilUnlock (address staker) public view returns (uint256) {
+        if (_stakedBalance[staker] == 0) {
+            return 0;
+        }
+
+        if (block.timestamp - _stakedTimestamps[staker] >= 3600 * 24 * 7) {
+            return 0;
+        }
+
+        return (_stakedTimestamps[staker] + 3600 * 24 * 7) - block.timestamp;
     }
 
     /**

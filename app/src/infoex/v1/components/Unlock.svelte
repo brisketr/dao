@@ -33,13 +33,12 @@
 		console.log("Requesting login signature...");
 
 		const signer = $ethersProvider.getSigner();
-		const message = "BrisketRib Brie Login";
+		const message = "BrisketRib Brie Login\n\nONLY sign this message from the official Brie app.";
 
 		let sig = "";
 
 		try {
 			sig = (await signer.signMessage(message)).toString();
-			console.log(`Signature: ${sig}`);
 		} catch (e) {
 			console.error("Error signing message", e);
 			error = "Login signature failed.";

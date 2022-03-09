@@ -9,6 +9,10 @@ export class EthersExchangeContract implements ExchangeContract {
 		this._contract = contract;
 	}
 
+	contract(): InfoExchange {
+		return this._contract;
+	}
+
 	async topStakers(): Promise<Staker[]> {
 		let stakers: Staker[] = [];
 		const stakerAddresses = await this._contract.topStakers();

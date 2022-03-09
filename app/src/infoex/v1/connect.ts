@@ -1,17 +1,28 @@
+import type { InfoExchange } from "@brisket-dao/core";
 import IPFS from "../../modules/ipfs-core/ipfs-core.js";
+import cryptoKeys from '../../modules/libp2p-crypto-keys/keys.js';
 import PeerID from '../../modules/peer-id/peer-id.js';
+import type { Contracts } from "../../web3/contracts.js";
+import { contract } from "../../web3/stores";
+import type { RSAEncrypter } from "./encryption.js";
+import { EthersExchangeContract } from "./exchange_contract_ethers.js";
+import type { Identity } from "./exchange_group.js";
 import { IpfsGlobalStore } from "./storage_ipfs.js";
 import { LocalStorageStore } from "./storage_local.js";
-import { identity, globalData, ipfs, ipfsConneced, ipfsConnecting, localData } from "./stores";
-import cryptoKeys from '../../modules/libp2p-crypto-keys/keys.js';
-import type { RSAEncrypter } from "./encryption.js";
-import type { Identity } from "./exchange_group.js";
+import { exchangeContractGenesis, globalData, identity, ipfs, ipfsConnected, ipfsConnecting, localData } from "./stores";
 
 let encrypter: RSAEncrypter = null;
+let infoExchangeGenesis: InfoExchange = null;
 
 identity.subscribe(async (identity: Identity) => {
 	if (identity) {
 		encrypter = identity.encrypter;
+	}
+});
+
+contract.subscribe(async (contract: Contracts) => {
+	if (contract) {
+		infoExchangeGenesis = contract.InfoExchangeGenesis;
 	}
 });
 
@@ -28,7 +39,7 @@ export async function connect() {
 		throw new Error("No identity set");
 	}
 
-	ipfsConneced.set(false);
+	ipfsConnected.set(false);
 	ipfsConnecting.set(true);
 
 	// Connect to IPFS.
@@ -63,7 +74,7 @@ export async function connect() {
 	const nodeId = ipfsId.id;
 
 	if (nodeId !== ipfsPeerId.toB58String()) {
-		ipfsConneced.set(false);
+		ipfsConnected.set(false);
 		ipfsConnecting.set(false);
 		console.warn(`IPFS peer ID mismatch. Expected ${ipfsPeerId.toB58String()}, got ${nodeId}.`);
 		console.log('Attempting to reconnect...');
@@ -95,6 +106,10 @@ export async function connect() {
 	ls.load();
 	localData.set(ls)
 
-	ipfsConneced.set(true);
+	exchangeContractGenesis.set(new EthersExchangeContract(
+		infoExchangeGenesis
+	));
+
+	ipfsConnected.set(true);
 	ipfsConnecting.set(false);
 }
