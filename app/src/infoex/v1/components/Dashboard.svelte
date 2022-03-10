@@ -1,13 +1,12 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 	import { push } from "svelte-spa-router";
-	import { connected, contract } from "../../../web3/stores.js";
+	import { connected } from "../../../web3/stores.js";
 	import type { InfoDoc } from "../cipher_doc.js";
 	import { connect } from "../connect.js";
-	import { EthersExchangeContract } from "../exchange_contract_ethers.js";
 	import { infoDocs } from "../exchange_group";
 	import {
-exchangeContractGenesis,
+		exchangeContractGenesis,
 		globalData,
 		identity,
 		ipfs,
@@ -27,10 +26,18 @@ exchangeContractGenesis,
 	}
 
 	$: {
-		if ($connected && $ipfsConnected && !$locked && $exchangeContractGenesis) {
-			infoDocs(crypto, $globalData, $exchangeContractGenesis, $identity).then(
-				(d) => (docs = d)
-			);
+		if (
+			$connected &&
+			$ipfsConnected &&
+			!$locked &&
+			$exchangeContractGenesis
+		) {
+			infoDocs(
+				crypto,
+				$globalData,
+				$exchangeContractGenesis,
+				$identity
+			).then((d) => (docs = d));
 		}
 	}
 

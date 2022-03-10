@@ -288,7 +288,7 @@ describe("Unit tests", function () {
         .stake(staker, amount)).to.emit(this.infoExchange, "EvictStaker").withArgs('0x8cC23CAA26d90311816cdb327A7f0B5FAe0f5cee');
 
       // Verify minStake
-      expect(await this.infoExchange.connect(this.signers.admin).minStake()).to.be.equal(hre.ethers.utils.parseUnits('134', 18).add(1));
+      expect(await this.infoExchange.connect(this.signers.admin).minStake()).to.be.equal(hre.ethers.utils.parseUnits('198', 18).add(1));
 
     });
 

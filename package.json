@@ -9,10 +9,10 @@
     "test:core": "npm run test -w core",
     "test:app": "npm run test -w app",
     "test": "npm run test:core && npm run test:app",
-    "node": "concurrently \"npm exec -w core -- hardhat node --hostname 127.0.0.1\" \"wait-port localhost:8545 && npm exec -w core -- hardhat run scripts/deploy-local.ts --network localhost\"",
+    "hardhat": "concurrently \"npm exec -w core -- hardhat node --hostname 127.0.0.1\" \"wait-port localhost:8545 && npm exec -w core -- hardhat run scripts/deploy-local.ts --network localhost\"",
     "node:dao": "npx ts-node app/src/node/main.ts",
-    "app:dev": "HOST=localhost npm run dev -w app",
-    "start": "npm run compile && concurrently \"npm run node\" \"npm run app\"",
+    "app:dev": "npm run dev -w app",
+    "start": "npm run compile && concurrently \"npm run node\" \"npm run app:dev\"",
     "deploy:matic": "npm run hardhat run scripts/deploy.ts --network matic -w core",
     "console:matic": "npm run hardhat console --network matic -w core"
   },

@@ -1,8 +1,8 @@
 <script lang="ts">
+	import pemJwk from "pem-jwk";
+	import seededrsa from "seededrsa";
 	import { onMount } from "svelte";
 	import { push } from "svelte-spa-router";
-	import pemJwk from "../../../modules/pem-jwk/pem-jwk.js";
-	import seededrsa from "../../../modules/seededrsa/seededrsa.js";
 	import {
 		address,
 		connected,
@@ -17,38 +17,54 @@
 	let creatingId = false;
 	let error = "";
 
-	function retry () {
+	function retry() {
 		error = "";
 		unlocking = false;
 		signing = false;
 		creatingId = false;
 	}
 
-	async function unlock() {
-		unlocking = true;
-		creatingId = false;
-		signing = true;
-		error = "";
+	async function unlockSig(db: IDBDatabase, sig: string) {
+		if (sig) {
+			console.info(`Found signature for ${$address}`);
+		} else {
+			// Have user sign a login message.
+			console.info("Requesting login signature...");
 
-		console.log("Requesting login signature...");
+			const signer = $ethersProvider.getSigner();
+			const message =
+				"BrisketRib Brie Login\n\nONLY sign this message from the official Brie app.";
 
-		const signer = $ethersProvider.getSigner();
-		const message = "BrisketRib Brie Login\n\nONLY sign this message from the official Brie app.";
+			try {
+				sig = (await signer.signMessage(message)).toString();
+			} catch (e) {
+				console.error("Error signing message", e);
+				error = "Login signature failed.";
+				signing = false;
+				unlocking = false;
+				creatingId = false;
+				return;
+			}
 
-		let sig = "";
+			// Store sig in IndexedDB keyed on $address.
+			console.info("Storing login sig...");
 
-		try {
-			sig = (await signer.signMessage(message)).toString();
-		} catch (e) {
-			console.error("Error signing message", e);
-			error = "Login signature failed.";
-			signing = false;
-			unlocking = false;
-			creatingId = false;
-			return;
+			{
+				const tx = db.transaction(["login_signatures"], "readwrite");
+				const store = tx.objectStore("login_signatures");
+				const req = store.put(sig, $address);
+
+				req.onsuccess = () => {
+					console.info("Stored login signature");
+				};
+
+				req.onerror = (e) => {
+					console.error("Error storing login signature", e);
+				};
+			}
 		}
 
-		console.log("Creating Identity...");
+		console.info("Creating Identity...");
 
 		signing = false;
 		creatingId = true;
@@ -63,7 +79,7 @@
 		};
 		creatingId = false;
 
-		console.log(`Created Identity: ${unlockedId.address}`);
+		console.info(`Created identity: ${unlockedId.address}`);
 
 		creatingId = false;
 		$identity = unlockedId;
@@ -73,11 +89,57 @@
 		push("/brie/dashboard");
 	}
 
+	async function unlock() {
+		unlocking = true;
+		creatingId = false;
+		signing = true;
+		error = "";
+
+		// Create brie IndexedDB if it doesn't exist.
+		let db: IDBDatabase;
+		const openRequest = indexedDB.open("brie", 1);
+
+		openRequest.onsuccess = async () => {
+			db = openRequest.result;
+			console.log(`Opened brie IndexedDB`);
+
+			// Get signature for $address, if it exists.
+			{
+				const txn = db.transaction("login_signatures", "readonly");
+				const store = txn.objectStore("login_signatures");
+				const request = store.get($address);
+
+				request.onsuccess = async () => {
+					let sig = "";
+
+					if (request.result) {
+						sig = request.result;
+					}
+
+					await unlockSig(db, sig);
+				};
+
+				request.onerror = (e) => {
+					console.error(`Failed to get signature for ${address}`, e);
+				};
+			}
+		};
+
+		openRequest.onupgradeneeded = () => {
+			console.info("Initializing brie IndexedDB");
+			openRequest.result.createObjectStore("login_signatures");
+		};
+
+		openRequest.onerror = () => {
+			console.error("Failed to open brie IndexedDB");
+		};
+	}
+
 	$: {
 		if (error === "" && $locked && $connected && !unlocking) {
 			unlock();
 		} else {
-			console.log("Not connected");
+			console.info("Not connected");
 		}
 	}
 
@@ -101,7 +163,9 @@
 {/if}
 
 {#if error}
-	<p class="error">{error} <a href="{window.location.toString()}" on:click={retry}>Retry</a>.</p>
+	<p class="error">
+		{error} <a href={window.location.toString()} on:click={retry}>Retry</a>.
+	</p>
 {/if}
 
 <style>

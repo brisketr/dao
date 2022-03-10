@@ -1,7 +1,8 @@
 import type { InfoExchange } from "@brisket-dao/core";
-import IPFS from "../../modules/ipfs-core/ipfs-core.js";
-import cryptoKeys from '../../modules/libp2p-crypto-keys/keys.js';
-import PeerID from '../../modules/peer-id/peer-id.js';
+import * as IPFS from 'ipfs-core'
+import cryptoKeys from 'libp2p-crypto/src/keys';
+
+import PeerID from 'peer-id';
 import type { Contracts } from "../../web3/contracts.js";
 import { contract } from "../../web3/stores";
 import type { RSAEncrypter } from "./encryption.js";

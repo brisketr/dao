@@ -1,4 +1,4 @@
-// This file is used by the build:ipfs npm script.
+// This file is needed for IPFS and other modules expecting node globals.
 
 // file: src/node-globals.js
 export const Buffer = require('buffer').Buffer;

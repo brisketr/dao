@@ -29,15 +29,6 @@ For example:
 
     npm run -w core -- test test/infoex/v1/InfoExchange.ts
 
-## Build modules
-
-Some dependencies are not able to be built with rollup, so they have to be built
-separately.
-
-Run:
-
-    npm run build:modules -w app
-
 ## Start both the frontend and localhost dev hardhat node
 
 This will start a full testing environment, including compiling and deploying
@@ -49,7 +40,7 @@ the smart contracts to a hardhat dev node running on `localhost`.
 
 To start just the hardhat dev node, run:
 
-    npm run node
+    npm run hardhat
 
 ## Run app unit tests
 

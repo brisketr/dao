@@ -6,7 +6,8 @@
 
 
   "compilerOptions": {
-    "types": ["node"]
+    "types": ["node"],
+    "target": "es2018",
   }
 
 }

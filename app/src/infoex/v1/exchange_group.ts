@@ -286,7 +286,7 @@ async function allowedKeys(
 	}));
 
 	// Filter valid keys.
-	const validKeys = allowedKeys.filter(key => key !== null && key !== undefined && key !== {});
+	const validKeys = allowedKeys.filter(key => key !== null && key !== undefined);
 
 	// If own key is not in allowed keys, add it.
 	const ownPubKey = await identity.encrypter.exportPublicKey();
