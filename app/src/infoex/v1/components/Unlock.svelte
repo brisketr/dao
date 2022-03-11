@@ -2,7 +2,6 @@
 	import pemJwk from "pem-jwk";
 	import seededrsa from "seededrsa";
 	import { onMount } from "svelte";
-	import { push } from "svelte-spa-router";
 	import {
 		address,
 		connected,
@@ -85,8 +84,6 @@
 		$identity = unlockedId;
 		$locked = false;
 		unlocking = false;
-
-		push("/brie/dashboard");
 	}
 
 	async function unlock() {
@@ -167,12 +164,3 @@
 		{error} <a href={window.location.toString()} on:click={retry}>Retry</a>.
 	</p>
 {/if}
-
-<style>
-	.error {
-		color: red;
-		font-size: 0.8em;
-		padding: 0.5em;
-		padding-top: 0em;
-	}
-</style>

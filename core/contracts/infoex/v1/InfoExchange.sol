@@ -25,6 +25,9 @@ contract InfoExchange {
     /**
      * @dev Stake tokens. Transfer Token from the staker to the contract and
      * update balances.
+     *
+     * @param staker The address of the staker.
+     * @param amount The amount of tokens to stake.
      */
     function stake(address staker, uint256 amount) public {
         console.log("staking %s tokens from %s", amount, staker);
@@ -41,7 +44,7 @@ contract InfoExchange {
 
         // Update top stakers.
         console.log("updating top stakers");
-        updateTopStakers(staker);
+        _updateTopStakers(staker);
 
         // Update staked timestamp.
         _stakedTimestamps[staker] = block.timestamp;
@@ -51,16 +54,28 @@ contract InfoExchange {
     }
 
     /**
+     * @dev Public unstake method. Only the staker can unstake himself.
+     *
+     * @param amount The amount of tokens to unstake.
+     */
+    function unstake(uint256 amount) public {
+        _unstake(msg.sender, amount);
+    }
+
+    /**
      * @dev Unstake tokens. Transfer Token from the contract to the staker and
      * update balances.
+     *
+     * @param staker The staker address.
+     * @param amount The amount of tokens to unstake.
      */
-    function unstake(address staker, uint256 amount) public {
+    function _unstake(address staker, uint256 amount) private {
         require(staker != address(0), "staker address cannot be the zero address");
         require(amount > 0, "amount must be greater than 0");
         require(amount <= _stakedBalance[staker], "amount must be less than or equal to the staked balance");
 
         // Require that a week has passed since staking.
-        require(block.timestamp - _stakedTimestamps[staker] >= 3600 * 24 * 7, "must stake for at least a week");
+        require(timeUntilUnlock(staker) == 0, "must stake for at least a week");
 
         _token.safeTransfer(staker, amount);
         _stakedBalance[staker] -= amount;
@@ -78,20 +93,20 @@ contract InfoExchange {
                 }
             }
         } else {
-            updateTopStakers(staker);
+            _updateTopStakers(staker);
         }
 
         // Emit unstake event.
         emit Unstaked(staker, amount);
     }
 
-	/**
+    /**
      * @dev Return amount of time until the staker can unstake.
      *
      * @param staker The staker's address.
      * @return The amount of time until the staker can unstake.
      */
-    function timeUntilUnlock (address staker) public view returns (uint256) {
+    function timeUntilUnlock(address staker) public view returns (uint256) {
         if (_stakedBalance[staker] == 0) {
             return 0;
         }
@@ -105,20 +120,23 @@ contract InfoExchange {
 
     /**
      * @dev Get the staked balance of a staker.
+     *
+     * @param staker The staker's address.
+     * @return The staked balance of the staker.
      */
     function stakedBalance(address staker) public view returns (uint256) {
         return _stakedBalance[staker];
     }
 
     /**
-     * @dev Get the top N stakers.
+     * @return the top N stakers.
      */
     function topStakers() public view returns (address[TOP_STAKER_COUNT] memory) {
         return _topStakers;
     }
 
     /**
-     * @dev Returns minimum amount required to enter top stakers.
+     * @return minimum amount required to enter top stakers.
      */
     function minStake() public view returns (uint256) {
         // If any top staker is address(0), then the minimum stake is 1.
@@ -145,7 +163,7 @@ contract InfoExchange {
     }
 
     /**
-     * @dev Returns true if the exchange is full.
+     * @return true if the exchange is full.
      */
     function isFull() public view returns (bool) {
         for (uint8 i = 0; i < TOP_STAKER_COUNT; i++) {
@@ -158,7 +176,7 @@ contract InfoExchange {
     }
 
     /**
-     * @dev Returns the amount of time left until the lowest staker can be
+     * @return the amount of time left until the lowest staker can be
      * evicted.
      */
     function timeUntilEvict() public view returns (uint256) {
@@ -173,8 +191,8 @@ contract InfoExchange {
             lowestStakerIndex = i;
             break;
         }
-        
-        uint evictTime = (_stakedTimestamps[_topStakers[lowestStakerIndex]] + 60 * 60 * 24 * 7);
+
+        uint256 evictTime = (_stakedTimestamps[_topStakers[lowestStakerIndex]] + 60 * 60 * 24 * 7);
 
         if (evictTime > block.timestamp) {
             return evictTime - block.timestamp;
@@ -190,8 +208,10 @@ contract InfoExchange {
      *
      * _topStakers must always be sorted by staked balance from lowest to
      * highest.
+     *
+     * @param staker The staker's address.
      */
-    function updateTopStakers(address staker) internal {
+    function _updateTopStakers(address staker) private {
         uint8 lowestStakerIndex = 0;
 
         // If _topStakers is full then unstake the lowest staker.
@@ -203,7 +223,7 @@ contract InfoExchange {
 
             console.log("unstaking lowest staker: %s", _topStakers[0]);
             emit EvictStaker(_topStakers[0]);
-            unstake(_topStakers[0], _stakedBalance[_topStakers[0]]);
+            _unstake(_topStakers[0], _stakedBalance[_topStakers[0]]);
         } else {
             // Find index of lowest staked balance.
             for (uint8 i = 0; i < TOP_STAKER_COUNT; i++) {
@@ -255,6 +275,9 @@ contract InfoExchange {
 
     /**
      * @dev Get the CID of a staker.
+     *
+     * @param staker The staker's address.
+     * @return The CID of the staker.
      */
     function cid(address staker) public view returns (string memory) {
         return _cids[staker];
@@ -262,6 +285,8 @@ contract InfoExchange {
 
     /**
      * @dev Register the CID of a staker.
+     *
+     * @param newCid The new CID of the staker.
      */
     function registerCid(string memory newCid) public {
         _cids[msg.sender] = newCid;

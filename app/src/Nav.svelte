@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { ethers } from "ethers";
 	import { connectWeb3 } from "./web3/connect";
 	import { NETWORK_METADATA } from "./web3/constants";
 	import {
@@ -10,6 +9,7 @@
 		tokenBalanceBRIB,
 		wrongNetwork,
 	} from "./web3/stores";
+	import { formatBigNumber } from "./web3/util/format";
 
 	let networkName = "Unknown";
 	let formattedAddress = "";
@@ -36,12 +36,7 @@
 				formattedAddress.substring(38);
 		}
 
-		formattedTokenBalanceBRIB = parseFloat(
-			ethers.utils.formatUnits($tokenBalanceBRIB, 18)
-		).toLocaleString("en-US", {
-			maximumFractionDigits: 2,
-			minimumFractionDigits: 2,
-		});
+		formattedTokenBalanceBRIB = formatBigNumber($tokenBalanceBRIB, 2, 2);
 	}
 
 	let hasMetamask = window.ethereum ? true : false;

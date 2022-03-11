@@ -1,13 +1,14 @@
 <script lang="ts">
-	import { ethers } from "ethers";
 	import { push } from "svelte-spa-router";
 	import { address, connected } from "../../../web3/stores";
+	import { formatBigNumber } from "../../../web3/util/format";
 	import type { Staker } from "../exchange_contract";
-	import { exchangeContractGenesis } from "../stores";
+	import type { EthersExchangeContract } from "../exchange_contract_ethers";
+	import { exchangeContractGenesis, ipfs } from "../stores";
 
-	export let nodeId = "";
-
+	let nodeId = "";
 	let numStakers = 0;
+	let maxStakers = 0;
 	let minStake = "";
 	let userStake = "";
 
@@ -17,29 +18,19 @@
 				return;
 			}
 
-			const topStakers: Staker[] =
-				await $exchangeContractGenesis.topStakers();
-			numStakers = topStakers.length;
+			nodeId = (await $ipfs.id()).id;
 
-			minStake = parseFloat(
-				ethers.utils.formatUnits(
-					await $exchangeContractGenesis.minStake(),
-					18
-				)
-			).toLocaleString("en-US", {
-				maximumFractionDigits: 0,
-				minimumFractionDigits: 0,
-			});
+			const infoEx: EthersExchangeContract = $exchangeContractGenesis;
+
+			const topStakers: Staker[] = await infoEx.topStakers();
+			numStakers = topStakers.length;
+			maxStakers = await infoEx.contract().TOP_STAKER_COUNT();
+			minStake = formatBigNumber(await infoEx.minStake(), 0, 0);
 
 			const userStaker = topStakers.find((s) => s.address === $address);
 
 			if (userStaker) {
-				userStake = parseFloat(
-					ethers.utils.formatUnits(userStaker.staked, 18)
-				).toLocaleString("en-US", {
-					maximumFractionDigits: 0,
-					minimumFractionDigits: 0,
-				});
+				userStake = formatBigNumber(userStaker.staked, 0, 0);
 			} else {
 				userStake = "0";
 			}
@@ -51,7 +42,7 @@
 	}
 </script>
 
-<table>
+<table class="ui">
 	<tr>
 		<td>Node ID</td>
 		<td class="number wrap">{nodeId}</td>
@@ -59,7 +50,7 @@
 
 	<tr>
 		<td># of Stakers</td>
-		<td class="number">{numStakers}/10</td>
+		<td class="number">{numStakers}/{maxStakers}</td>
 	</tr>
 
 	<tr>
@@ -74,28 +65,8 @@
 
 	<tr>
 		<td />
-		<td class="number">
+		<td class="input">
 			<button on:click={stake}>Stake</button>
 		</td>
 	</tr>
 </table>
-
-<style>
-	table {
-		table-layout: fixed;
-	}
-
-	table td {
-		border-collapse: collapse;
-		border: 1px solid white;
-		padding: 1em;
-	}
-
-	td.number {
-		text-align: right;
-	}
-
-	td.wrap {
-		overflow-wrap: break-word;
-	}
-</style>
