@@ -1,15 +1,19 @@
 <script lang="ts">
+	import { BigNumber } from "ethers";
+
 	import { push } from "svelte-spa-router";
 	import { address, connected } from "../../../web3/stores";
 	import { formatBigNumber } from "../../../web3/util/format";
 	import type { Staker } from "../exchange_contract";
 	import type { EthersExchangeContract } from "../exchange_contract_ethers";
 	import { eventCount, exchangeContractGenesis, ipfs } from "../stores";
-import { formattedTimeUntilUnlock } from "../unlock_countdown";
+	import { formattedTimeUntilUnlock } from "../unlock_countdown";
 
 	let nodeId = "";
 	let numStakers = 0;
 	let maxStakers = 0;
+	let tvl = 0;
+	let position = 0;
 	let minStake = "";
 	let userStake = "";
 
@@ -27,10 +31,33 @@ import { formattedTimeUntilUnlock } from "../unlock_countdown";
 
 		const userStaker = topStakers.find((s) => s.address === address);
 
+		/**
+		 * Compute TVL: sum of BRIB staked for all top stakers.
+		 */
+		tvl = parseInt(
+			formatBigNumber(
+				topStakers.reduce(
+					(acc, s) => acc.add(s.staked),
+					BigNumber.from(0)
+				),
+				0,
+				0
+			)
+		);
+
 		if (userStaker) {
 			userStake = formatBigNumber(userStaker.staked, 0, 0);
+
+			/**
+			 * Compute position as index of user staker in topStakers sorted by
+			 * staked amount.
+			 */
+			position =
+				topStakers.length -
+				topStakers.findIndex((s) => s.address === address);
 		} else {
 			userStake = "0";
+			position = 0;
 		}
 	}
 
@@ -65,16 +92,26 @@ import { formattedTimeUntilUnlock } from "../unlock_countdown";
 	</tr>
 
 	<tr>
+		<td>TVL (BRIB)</td>
+		<td class="number">{tvl}</td>
+	</tr>
+
+	<tr>
 		<td>Minimum to Stake (BRIB)</td>
 		<td class="number">{minStake}</td>
 	</tr>
 
-	<tr>
-		<td>Your Stake (BRIB)</td>
-		<td class="number">{userStake}</td>
-	</tr>
-
 	{#if parseInt(userStake) > 0}
+		<tr>
+			<td>Your Stake (BRIB)</td>
+			<td class="number">{userStake}</td>
+		</tr>
+
+		<tr>
+			<td>Your Stake Position</td>
+			<td class="number">{position}/{maxStakers}</td>
+		</tr>
+
 		<tr>
 			<td>Time Until Unlock</td>
 			<td class="number">{$formattedTimeUntilUnlock}</td>
