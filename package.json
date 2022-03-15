@@ -10,6 +10,7 @@
     "test:app": "npm run test -w app",
     "test": "npm run test:core && npm run test:app",
     "hardhat": "concurrently \"npm exec -w core -- hardhat node --hostname 127.0.0.1\" \"wait-port localhost:8545 && npm exec -w core -- hardhat run scripts/deploy-local.ts --network localhost\"",
+    "hardhat:console": "npm exec -w core -- hardhat --network localhost console --no-compile",
     "node:dao": "npx ts-node app/src/node/main.ts",
     "app:dev": "npm run dev -w app",
     "start": "npm run compile && concurrently \"npm run node\" \"npm run app:dev\"",

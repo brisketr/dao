@@ -4,7 +4,8 @@
 	import { formatBigNumber } from "../../../web3/util/format";
 	import type { Staker } from "../exchange_contract";
 	import type { EthersExchangeContract } from "../exchange_contract_ethers";
-	import { exchangeContractGenesis, ipfs } from "../stores";
+	import { eventCount, exchangeContractGenesis, ipfs } from "../stores";
+import { formattedTimeUntilUnlock } from "../unlock_countdown";
 
 	let nodeId = "";
 	let numStakers = 0;
@@ -12,33 +13,43 @@
 	let minStake = "";
 	let userStake = "";
 
+	async function updateOnChainInfo(
+		address: string,
+		ipfs: any,
+		infoEx: EthersExchangeContract
+	) {
+		nodeId = (await ipfs.id()).id;
+
+		const topStakers: Staker[] = await infoEx.topStakers();
+		numStakers = topStakers.length;
+		maxStakers = await infoEx.contract().TOP_STAKER_COUNT();
+		minStake = formatBigNumber(await infoEx.minStake(), 0, 0);
+
+		const userStaker = topStakers.find((s) => s.address === address);
+
+		if (userStaker) {
+			userStake = formatBigNumber(userStaker.staked, 0, 0);
+		} else {
+			userStake = "0";
+		}
+	}
+
 	$: {
-		(async () => {
-			if (!$connected || $exchangeContractGenesis == null) {
-				return;
-			}
+		if ($connected && $exchangeContractGenesis != null) {
+			console.log(
+				`Updating on-chain info; Event count is ${$eventCount}`
+			);
 
-			nodeId = (await $ipfs.id()).id;
-
-			const infoEx: EthersExchangeContract = $exchangeContractGenesis;
-
-			const topStakers: Staker[] = await infoEx.topStakers();
-			numStakers = topStakers.length;
-			maxStakers = await infoEx.contract().TOP_STAKER_COUNT();
-			minStake = formatBigNumber(await infoEx.minStake(), 0, 0);
-
-			const userStaker = topStakers.find((s) => s.address === $address);
-
-			if (userStaker) {
-				userStake = formatBigNumber(userStaker.staked, 0, 0);
-			} else {
-				userStake = "0";
-			}
-		})();
+			updateOnChainInfo($address, $ipfs, $exchangeContractGenesis);
+		}
 	}
 
 	function stake() {
 		push("/brie/stake");
+	}
+
+	function unstake() {
+		push("/brie/unstake");
 	}
 </script>
 
@@ -62,6 +73,20 @@
 		<td>Your Stake (BRIB)</td>
 		<td class="number">{userStake}</td>
 	</tr>
+
+	{#if parseInt(userStake) > 0}
+		<tr>
+			<td>Time Until Unlock</td>
+			<td class="number">{$formattedTimeUntilUnlock}</td>
+		</tr>
+
+		<tr>
+			<td />
+			<td class="input">
+				<button on:click={unstake}>Unstake</button>
+			</td>
+		</tr>
+	{/if}
 
 	<tr>
 		<td />

@@ -42,6 +42,12 @@ To start just the hardhat dev node, run:
 
     npm run hardhat
 
+### Hardhat Console
+
+To start the hardhat console, run:
+
+    npm run hardhat:console
+
 ## Run app unit tests
 
 To run the app unit tests, run:

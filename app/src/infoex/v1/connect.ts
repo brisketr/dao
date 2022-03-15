@@ -1,4 +1,5 @@
 import type { InfoExchange } from "@brisket-dao/core";
+import { BigNumber, ethers } from "ethers";
 import * as IPFS from 'ipfs-core'
 import cryptoKeys from 'libp2p-crypto/src/keys';
 
@@ -10,10 +11,16 @@ import { EthersExchangeContract } from "./exchange_contract_ethers.js";
 import type { Identity } from "./exchange_group.js";
 import { IpfsGlobalStore } from "./storage_ipfs.js";
 import { LocalStorageStore } from "./storage_local.js";
-import { exchangeContractGenesis, globalData, identity, ipfs, ipfsConnected, ipfsConnecting, localData } from "./stores";
+import { eventCount, exchangeContractGenesis, globalData, identity, ipfs, ipfsConnected, ipfsConnecting, localData } from "./stores";
+import { refreshCountdownInterval } from "./unlock_countdown.js";
 
 let encrypter: RSAEncrypter = null;
 let infoExchangeGenesis: InfoExchange = null;
+let eventCountLocal: number = 0;
+
+eventCount.subscribe(async (e: number) => {
+	eventCountLocal = e;
+});
 
 identity.subscribe(async (identity: Identity) => {
 	if (identity) {
@@ -107,6 +114,8 @@ export async function connect() {
 	ls.load();
 	localData.set(ls)
 
+	subscribeWeb3Events(infoExchangeGenesis);
+
 	exchangeContractGenesis.set(new EthersExchangeContract(
 		infoExchangeGenesis
 	));
@@ -114,3 +123,33 @@ export async function connect() {
 	ipfsConnected.set(true);
 	ipfsConnecting.set(false);
 }
+
+function subscribeWeb3Events(infoExchangeGenesis: InfoExchange) {
+	infoExchangeGenesis.on('Staked', (staker: string, amount: BigNumber) => {
+		console.info(`Event: Staked ${ethers.utils.formatUnits(amount, 18)} tokens from ${staker}`);
+
+		// Increment event count.
+		eventCount.set(eventCountLocal + 1);
+
+		refreshCountdownInterval();
+	});
+
+	infoExchangeGenesis.on('Unstaked', (staker: string, amount: BigNumber) => {
+		console.info(`Event: Unstaked ${ethers.utils.formatUnits(amount, 18)} tokens from ${staker}`);
+
+		// Increment event count.
+		eventCount.set(eventCountLocal + 1);
+
+		refreshCountdownInterval();
+	});
+
+	infoExchangeGenesis.on('EvictStaker', (staker: string) => {
+		console.info(`Event: EvictStaker ${staker}`);
+
+		// Increment event count.
+		eventCount.set(eventCountLocal + 1);
+
+		refreshCountdownInterval();
+	});
+}
+

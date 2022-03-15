@@ -1,12 +1,15 @@
 <script lang="ts">
-	import type { BRIBToken } from "@brisket-dao/core";
 	import { BigNumber, ethers } from "ethers";
 	import { onMount } from "svelte";
 	import { push } from "svelte-spa-router";
-	import { address, connected, contract } from "../../../web3/stores";
+	import { address, connected } from "../../../web3/stores";
 	import { formatBigNumber } from "../../../web3/util/format";
 	import type { EthersExchangeContract } from "../exchange_contract_ethers";
 	import { exchangeContractGenesis } from "../stores";
+	import {
+		formattedTimeUntilUnlock,
+		timeUntilUnlock,
+	} from "../unlock_countdown";
 
 	let maxUnstakeFormatted = "";
 	let amount = 0;
@@ -21,8 +24,10 @@
 	let unstakeError = "";
 
 	$: infoEx = $exchangeContractGenesis as EthersExchangeContract;
-	$: brib = $contract.BRIBToken as BRIBToken;
 
+	/**
+	 * Update on chain data.
+	 */
 	$: {
 		(async () => {
 			if (!$connected || $exchangeContractGenesis == null) {
@@ -34,11 +39,16 @@
 		})();
 	}
 
+	/**
+	 * Validate form values.
+	 */
 	$: {
 		if (amount > parseFloat(maxUnstakeFormatted)) {
 			amountError = `Maximum that can be unstaked is ${maxUnstakeFormatted}.`;
 		} else if (amount == 0 || !amount) {
 			amountError = "Amount must be greater than 0.";
+		} else if ($timeUntilUnlock > 0) {
+			amountError = `Cannot unstake until ${$formattedTimeUntilUnlock} from now.`;
 		} else {
 			amountError = "";
 		}
@@ -61,11 +71,11 @@
 
 		try {
 			unstakeState = "unstake-request";
-			const stakeTx = await infoEx.contract().unstake(stakeAmt);
+			const unstakeTx = await infoEx.contract().unstake(stakeAmt);
 			unstakeState = "unstake-waiting";
 
 			try {
-				stakeTx.wait();
+				unstakeTx.wait();
 				unstakeState = "unstaked";
 
 				push("/brie");
@@ -91,6 +101,11 @@
 <h2>Genesis Exchange - Unstake</h2>
 
 <table class="ui">
+	<tr>
+		<td>Time Until Unlock</td>
+		<td class="number">{$formattedTimeUntilUnlock}</td>
+	</tr>
+
 	<tr>
 		<td>Maximum Unstakable (BRIB)</td>
 		<td class="number">
