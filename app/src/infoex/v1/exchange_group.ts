@@ -1,7 +1,6 @@
 import { decryptInfoCipherDoc, deserializeInfoCipherDoc, encryptInfoDoc, InfoCipherDoc, InfoDoc, NoKeyFoundError, serializeInfoCipherDoc } from "./cipher_doc";
 import { keysAreEqual, RSAEncrypter, sha256 } from "./encryption";
 import type { ExchangeContract } from "./exchange_contract";
-import { logError, logInfo, logWarn } from "./logging";
 import type { GlobalDataStore, LocalDataStore } from "./storage";
 
 export interface Identity {
@@ -43,7 +42,7 @@ export function computeGroupInfoHash(
 	crypto: Crypto,
 	cipherDocs: Map<string, InfoCipherDoc>,
 ): Promise<string> {
-	logInfo("Computing latest group info hash...");
+	console.info("Computing latest group info hash...");
 
 	// Get cids from the .cid property of each InfoCipherDoc.
 	const cids = Array.from(cipherDocs.values()).map(doc => doc.cid);
@@ -68,7 +67,7 @@ export async function newInfoAvailable(
 	localData: LocalDataStore,
 	cipherDocs: Map<string, InfoCipherDoc>,
 ): Promise<boolean> {
-	logInfo("Checking for new information...");
+	console.info("Checking for new information...");
 
 	// Compute the latest group info hash.
 	const latestGroupInfoHash = await computeGroupInfoHash(crypto, cipherDocs);
@@ -79,9 +78,9 @@ export async function newInfoAvailable(
 	const result = latestGroupInfoHash !== localGroupInfoHash;
 
 	if (result) {
-		logInfo("New information available.");
+		console.info("New information available.");
 	} else {
-		logInfo("No new information available.");
+		console.info("No new information available.");
 	}
 
 	return result;
@@ -98,7 +97,7 @@ export async function acknowledgeInfo(
 	localData: LocalDataStore,
 	latestGroupInfoHash: string,
 ): Promise<void> {
-	logInfo(`Acknowledging latest group info hash: ${latestGroupInfoHash}`);
+	console.info(`Acknowledging latest group info hash: ${latestGroupInfoHash}`);
 	// Record latest group info hash in local data store.
 	await localData.put("latestGroupInfoHash", latestGroupInfoHash);
 	await localData.save();
@@ -118,34 +117,34 @@ export async function cipherDoc(
 	contract: ExchangeContract,
 	address: string,
 ): Promise<InfoCipherDoc> {
-	logInfo(`Getting cipher doc for staker ${address}...`);
+	console.info(`Getting cipher doc for staker ${address}...`);
 
 	// Get the on-chain CID for the staker.
-	logInfo(`Getting CID for staker ${address}...`);
+	console.info(`Getting CID for staker ${address}...`);
 	const cid = await contract.cid(address);
 
 	if (cid === undefined || cid === "" || cid === null) {
-		logWarn(`CID for staker ${address} is undefined or empty.`);
+		console.warn(`CID for staker ${address} is undefined or empty.`);
 		return null;
 	}
 
 	// Get the cipher doc.
-	logInfo(`Getting cipher doc for CID ${cid}...`);
+	console.info(`Getting cipher doc for CID ${cid}...`);
 	const cipherDoc = await getCipherDoc(globalData, cid);
 
 	// If IPNS is set, resolve the IPNS name.
 	if (cipherDoc.ipns !== "") {
 		try {
-			logInfo(`Resolving IPNS name ${cipherDoc.ipns}...`);
+			console.info(`Resolving IPNS name ${cipherDoc.ipns}...`);
 			const resolvedCid = await globalData.resolveName(
 				cipherDoc.ipns,
 				"infoex_v1_cipher_doc"
 			);
 
-			logInfo(`Resolved IPNS name ${cipherDoc.ipns} to ${resolvedCid}`);
+			console.info(`Resolved IPNS name ${cipherDoc.ipns} to ${resolvedCid}`);
 			return getCipherDoc(globalData, resolvedCid);
 		} catch (e) {
-			logError("Failed to resolve IPNS name", cipherDoc.ipns, cid, e);
+			console.error("Failed to resolve IPNS name", cipherDoc.ipns, cid, e);
 			return cipherDoc;
 		}
 	} else {
@@ -174,7 +173,7 @@ export async function infoDoc(
 	const cdoc = await cipherDoc(globalData, contract, address);
 
 	if (cdoc === null) {
-		logWarn(`No cipher doc for staker ${address}`);
+		console.warn(`No cipher doc for staker ${address}`);
 		return null;
 	}
 
@@ -196,15 +195,15 @@ export async function infoDocs(
 	contract: ExchangeContract,
 	identity: Identity,
 ): Promise<Map<string, InfoDoc>> {
-	logInfo("Getting info docs for all stakers...");
+	console.info("Getting info docs for all stakers...");
 	const result: Map<string, InfoDoc> = new Map();
 
-	logInfo("Getting stakers...");
+	console.info("Getting stakers...");
 	const topStakers = await contract.topStakers();
 
 	// Get InfoDoc for each staker.
 	await Promise.all(topStakers.map(async staker => {
-		logInfo(`Getting info doc for staker ${staker.address}...`);
+		console.info(`Getting info doc for staker ${staker.address}...`);
 		try {
 			const doc = await infoDoc(crypto, globalData, contract, identity, staker.address);
 
@@ -213,9 +212,9 @@ export async function infoDocs(
 			}
 		} catch (e) {
 			if (e instanceof NoKeyFoundError) {
-				logWarn(`We do not (yet?) have the key to decrypt info doc for staker ${staker.address}`);
+				console.warn(`We do not (yet?) have the key to decrypt info doc for staker ${staker.address}`);
 			} else {
-				logError(`Failed to get info doc for staker ${staker.address}`, e);
+				console.error(`Failed to get info doc for staker ${staker.address}`, e);
 			}
 		}
 	}));
@@ -234,10 +233,10 @@ export async function cipherDocs(
 	globalData: GlobalDataStore,
 	contract: ExchangeContract,
 ): Promise<Map<string, InfoCipherDoc>> {
-	logInfo("Getting cipher docs for all stakers...");
+	console.info("Getting cipher docs for all stakers...");
 	const result: Map<string, InfoCipherDoc> = new Map();
 
-	logInfo("Getting stakers...");
+	console.info("Getting stakers...");
 	const topStakers = await contract.topStakers();
 
 	// Get InfoCipherDoc for each staker.
@@ -268,19 +267,19 @@ async function allowedKeys(
 	const topStakers = await contract.topStakers();
 
 	// Get allowed keys.
-	logInfo("Retrieving set of allowed pubkeys...");
+	console.info("Retrieving set of allowed pubkeys...");
 	const allowedKeys: JsonWebKey[] = await Promise.all(topStakers.map(async staker => {
 		try {
 			const cdoc = await cipherDoc(globalData, contract, staker.address);
 
 			if (cdoc === null) {
-				logWarn(`No cipher doc for staker ${staker.address}`);
+				console.warn(`No cipher doc for staker ${staker.address}`);
 				return null;
 			}
 
 			return cdoc.ownerRSAPubKey;
 		} catch (e) {
-			logError("Failed to retrieve cipher doc to resolve RSA public key", staker.address, e);
+			console.error("Failed to retrieve cipher doc to resolve RSA public key", staker.address, e);
 			return null;
 		}
 	}));
@@ -292,7 +291,7 @@ async function allowedKeys(
 	const ownPubKey = await identity.encrypter.exportPublicKey();
 
 	if (!validKeys.find(key => keysAreEqual(key, ownPubKey))) {
-		logInfo("Own key not in allowed keys, adding it.");
+		console.info("Own key not in allowed keys, adding it.");
 		validKeys.push(ownPubKey);
 	}
 
@@ -317,46 +316,46 @@ export async function publishIpfs(
 	contract: ExchangeContract,
 	doc: InfoDoc
 ): Promise<string> {
-	logInfo("Encrypting and publishing info doc to IPFS...");
+	console.info("Encrypting and publishing info doc to IPFS...");
 	const validKeys = await allowedKeys(globalData, contract, identity);
 
 	// Encrypt the doc.
-	logInfo("Encrypting info doc...");
+	console.info("Encrypting info doc...");
 	const encryptedDoc = await encryptInfoDoc(crypto, validKeys, identity.encrypter, doc);
 	const serializedDoc = await serializeInfoCipherDoc(encryptedDoc);
 
 	// Publish the doc.
-	logInfo(`Publishing cipher doc for ${identity.address}...`);
+	console.info(`Publishing cipher doc for ${identity.address}...`);
 	const cid = await globalData.put(serializedDoc);
-	logInfo(`Published cipher doc for ${identity.address} to ${cid}`);
+	console.info(`Published cipher doc for ${identity.address} to ${cid}`);
 
 	// Get current cipher doc for identity.
 	try {
-		logInfo(`Updating IPNS for ${identity.address} to ${cid}...`);
+		console.info(`Updating IPNS for ${identity.address} to ${cid}...`);
 		const name = await globalData.publishName("infoex_v1_cipher_doc", cid);
 
 		const cdoc = await cipherDoc(globalData, contract, identity.address);
 
 		// If IPNS is set, update IPNS to point to new CID.
 		if (cdoc === null || cdoc.ipns === "" || cdoc.ipns === null || cdoc.ipns === undefined) {
-			logInfo(`No IPNS set for ${identity.address}, will init IPNS.`);
+			console.info(`No IPNS set for ${identity.address}, will init IPNS.`);
 
 			// Update IPNS.
 			encryptedDoc.ipns = name;
 
 			// Re-publish doc.
 			const serializedDoc = await serializeInfoCipherDoc(encryptedDoc);
-			logInfo(`Publishing cipher doc for ${identity.address}...`);
+			console.info(`Publishing cipher doc for ${identity.address}...`);
 			const cid = await globalData.put(serializedDoc);
-			logInfo(`Published cipher doc for ${identity.address} to ${cid}`);
+			console.info(`Published cipher doc for ${identity.address} to ${cid}`);
 
-			logInfo(`Updating IPNS for ${identity.address} to ${cid}...`);
+			console.info(`Updating IPNS for ${identity.address} to ${cid}...`);
 			await globalData.publishName("infoex_v1_cipher_doc", cid);
 
 			return cid;
 		}
 	} catch (e) {
-		logError("Failed to update IPNS", identity.address, e);
+		console.error("Failed to update IPNS", identity.address, e);
 	}
 
 	return cid;
@@ -419,7 +418,7 @@ export async function updateOnChainCid(
 	contract: ExchangeContract,
 	cid: string
 ): Promise<void> {
-	logInfo(`Updating on-chain CID to ${cid}...`);
+	console.info(`Updating on-chain CID to ${cid}...`);
 
 	return await contract.registerCid(cid);
 }

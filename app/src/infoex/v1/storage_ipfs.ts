@@ -1,5 +1,6 @@
-import { logInfo, logWarn } from "./logging";
 import type { DataStoreKey, DataStoreName, GlobalDataStore } from "./storage";
+
+export class NamesUndefinedError extends Error { }
 
 export class IpfsGlobalStore implements GlobalDataStore {
 	private ipfs: any;
@@ -12,44 +13,58 @@ export class IpfsGlobalStore implements GlobalDataStore {
 	}
 
 	async put(value: string): Promise<DataStoreKey> {
-		logInfo(`Storing data...`);
+		console.info(`Storing data...`);
 		const { cid } = await this.ipfs.add(value);
-		logInfo(`Data stored: ${cid}`);
+		console.info(`Data stored: ${cid}`);
 		return cid;
 	}
 
 	async get(key: DataStoreKey): Promise<string> {
 		let data = '';
-		logInfo(`Retrieving data from ${key}...`);
+		console.info(`Retrieving data from ${key}...`);
 		const stream = this.ipfs.cat(key);
 
 		for await (const chunk of stream) {
-			logInfo(`Retrieved chunk of size ${chunk.length} for key ${key}.`);
+			console.info(`Retrieved chunk of size ${chunk.length} for key ${key}.`);
 			data += chunk.toString();
 		}
 
-		logInfo(`Retrieved ${data.length} bytes.`);
+		console.info(`Retrieved ${data.length} bytes.`);
 
 		return data;
 	}
 
-	async _getNames(name): Promise<Map<DataStoreName, DataStoreKey>> {
-		logInfo(`Retrieving names for ${name}...`);
+
+	async _getNames(name: string): Promise<Map<DataStoreName, DataStoreKey>> {
+		console.info(`Retrieving names for ${name}...`);
 		const { key } = await this.ipfs.name.resolve(name);
-		logInfo(`Retrieved names for ${name}: ${key}`);
+
+		if (key === undefined) {
+			console.info(`Names not set for ${name}.`);
+			throw new NamesUndefinedError();
+		}
+
+		console.info(`Retrieved names for ${name}: ${key}`);
 		return JSON.parse(await this.get(key));
 	}
 
 	async publishName(subKey: DataStoreKey, contentKey: DataStoreKey): Promise<DataStoreName> {
-		const { id } = this.ipfs.id();
-		logInfo(`Publishing name ${id}[${subKey}]...`);
+		const id = (await this.ipfs.id()).id;
+		console.info(`Publishing name ${id}[${subKey}]...`);
 		let curNames = {};
 
 		try {
 			curNames = await this._getNames(id);
 		} catch (err) {
-			//FIXME specifically handle case where names not set, otherwise throw.
-			logWarn(`Failed to get names (may not exist yet): ${err.message}`, err);
+			// Specifically handle case where names not set, otherwise throw.
+			console.warn(`Failed to get names (may not exist yet): ${err.message}`, err);
+
+			// If err is a NamesUndefinedError, continue.
+			if (!(err instanceof NamesUndefinedError)) {
+				throw err;
+			}
+
+			console.info(`Names not set, continuing...`);
 		}
 
 		curNames[subKey] = contentKey;
@@ -57,7 +72,7 @@ export class IpfsGlobalStore implements GlobalDataStore {
 		const key = await this.put(JSON.stringify(curNames));
 
 		const { n } = await this.ipfs.name.publish(key);
-		logInfo(`Published names for ${id} at key ${key}.`);
+		console.info(`Published names for ${id} at key ${key}.`);
 		return n;
 	}
 

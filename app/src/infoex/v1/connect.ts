@@ -1,8 +1,7 @@
 import type { InfoExchange } from "@brisket-dao/core";
 import { BigNumber, ethers } from "ethers";
-import * as IPFS from 'ipfs-core'
+import * as IPFS from 'ipfs-core';
 import cryptoKeys from 'libp2p-crypto/src/keys';
-
 import PeerID from 'peer-id';
 import type { Contracts } from "../../web3/contracts.js";
 import { contract } from "../../web3/stores";
@@ -13,6 +12,7 @@ import { IpfsGlobalStore } from "./storage_ipfs.js";
 import { LocalStorageStore } from "./storage_local.js";
 import { eventCount, exchangeContractGenesis, globalData, identity, ipfs, ipfsConnected, ipfsConnecting, localData } from "./stores";
 import { refreshCountdownInterval } from "./unlock_countdown.js";
+
 
 let encrypter: RSAEncrypter = null;
 let infoExchangeGenesis: InfoExchange = null;
@@ -70,6 +70,13 @@ export async function connect() {
 		newIpfs = await IPFS.create({
 			init: {
 				privateKey: ipfsPeerId
+			},
+			libp2p: {
+				config: {
+					dht: {
+						enabled: true
+					}
+				}
 			}
 		});
 	} else {

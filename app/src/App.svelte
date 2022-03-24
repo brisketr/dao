@@ -13,7 +13,7 @@
 	import Mint from "./treasury/Mint.svelte";
 	import Treasury from "./treasury/Treasury.svelte";
 	import { contract } from "./web3/stores";
-	import InfoEx from "./infoex/v1/components/InfoEx.svelte";
+	import Root from "./infoex/v1/components/Root.svelte";
 
 	const routes = {
 		"/": Home,
@@ -24,8 +24,8 @@
 		"/token": Token,
 		"/token/description": Description,
 
-		"/brie": InfoEx,
-		"/brie/*": InfoEx,
+		"/brie": Root,
+		"/brie/*": Root,
 
 		"/airdrop/202107": Airdrop202107,
 		"/airdrop/signdrop/create": Create,

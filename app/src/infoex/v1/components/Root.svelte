@@ -4,6 +4,7 @@
 	import { connect } from "../connect.js";
 	import { identity, ipfsConnected, ipfsConnecting, locked } from "../stores";
 	import Dashboard from "./Dashboard.svelte";
+	import Exchange from "./Exchange.svelte";
 	import Stake from "./Stake.svelte";
 	import Unstake from "./Unstake.svelte";
 	import Welcome from "./Welcome.svelte";
@@ -13,6 +14,7 @@
 		"/": Dashboard,
 		"/stake": Stake,
 		"/unstake": Unstake,
+		"/exchange": Exchange,
 	};
 
 	$: {

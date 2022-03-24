@@ -78,6 +78,11 @@
 	function unstake() {
 		push("/brie/unstake");
 	}
+
+	function access() {
+		push("/brie/exchange");
+	}
+
 </script>
 
 <table class="ui">
@@ -131,4 +136,12 @@
 			<button on:click={stake}>Stake</button>
 		</td>
 	</tr>
+
+	<tr>
+		<td />
+		<td class="input">
+			<button on:click={access}>Access Exchange</button>
+		</td>
+	</tr>
+
 </table>
