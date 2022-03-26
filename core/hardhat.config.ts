@@ -34,10 +34,10 @@ const chainIds = {
 // }
 
 // Ensure that we have all the environment variables we need.
-const account_private_key = process.env.ACCOUNT_PRIVATE_KEY;
-if (!account_private_key) {
- throw new Error("Please set your ACCOUNT_PRIVATE_KEY in a .env file");
-}
+// const account_private_key = process.env.ACCOUNT_PRIVATE_KEY;
+// if (!account_private_key) {
+//  throw new Error("Please set your ACCOUNT_PRIVATE_KEY in a .env file");
+// }
 
 // const infuraApiKey = process.env.INFURA_API_KEY;
 // if (!infuraApiKey) {
@@ -71,7 +71,7 @@ const config: HardhatUserConfig = {
      url: "https://rpc-mainnet.matic.network",
      gasPrice: utils.parseUnits("1.2", "gwei").toNumber(),
      // gasMultiplier: 25,
-     accounts: [account_private_key],
+    //  accounts: [account_private_key],
      chainId: chainIds.matic,
    },
    avalancheCChain: {
@@ -79,7 +79,7 @@ const config: HardhatUserConfig = {
      // https://cointool.app/gasPrice/avax
      gasPrice: utils.parseUnits("36", "gwei").toNumber(),
      // gasMultiplier: 25,
-     accounts: [account_private_key],
+    //  accounts: [account_private_key],
      chainId: chainIds.avalancheCChain,
    },
     // goerli: createTestnetConfig("goerli"),
