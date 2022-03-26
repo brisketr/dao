@@ -1,6 +1,6 @@
 import type { InfoExchange } from "@brisket-dao/core";
 import { BigNumber, ethers } from "ethers";
-import * as IPFS from 'ipfs-core';
+import * as IPFS from 'ipfs-http-client';
 import cryptoKeys from 'libp2p-crypto/src/keys';
 import PeerID from 'peer-id';
 import type { Contracts } from "../../web3/contracts.js";
@@ -41,6 +41,10 @@ export function resetIpfs() {
 	indexedDB.deleteDatabase('ipfs/pins');
 }
 
+async function createIpfs() {
+
+}
+
 export async function connect() {
 
 	if (encrypter === null) {
@@ -67,20 +71,28 @@ export async function connect() {
 
 		resetIpfs();
 
+		// newIpfs = await IPFS.create({
+		// 	//FIXME Set "repo" key based on account: https://github.com/ipfs-examples/js-ipfs-browser-exchange-files/blob/main/src/app.js#L52
+		// 	config: {
+		// 		Addresses: {
+		// 			Swarm: [
+		// 				"/dns4/webrtc-star.app.brisket.lol/tcp/443/wss/p2p-webrtc-star",
+		// 			],
+		// 		},
+		// 		// If you want to connect to the public bootstrap nodes, remove the next line
+		// 		Bootstrap: [],
+		// 	},
+		// 	init: {
+		// 		privateKey: ipfsPeerId
+		// 	}
+		// });
 		newIpfs = await IPFS.create({
-			init: {
-				privateKey: ipfsPeerId
-			},
-			libp2p: {
-				config: {
-					dht: {
-						enabled: true
-					}
-				}
-			}
+			url: 'https://dweb.link:5001'
 		});
 	} else {
-		newIpfs = await IPFS.create();
+		newIpfs = await IPFS.create({
+			url: 'https://dweb.link'
+		});
 	}
 
 	ipfs.set(newIpfs);
@@ -100,9 +112,7 @@ export async function connect() {
 		// Try to reconnect.
 		resetIpfs();
 		newIpfs = await IPFS.create({
-			init: {
-				privateKey: ipfsPeerId
-			}
+			url: 'https://dweb.link',
 		});
 
 		// Validate that the peer ID matches.
