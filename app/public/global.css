@@ -40,7 +40,7 @@ a:hover {
 }
 
 a:visited {
-	color:white;
+	color: white;
 }
 
 label {
@@ -61,6 +61,24 @@ input, button, select, textarea {
 
 	/* No rounded corners. */
 	border-radius: 0;
+}
+
+input[type="number"] {
+	text-align: right;
+}
+
+/* Hide arrows on number inputs. */
+
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
 }
 
 /* No radius on active inputs, buttons, etc. */
@@ -119,6 +137,38 @@ table td.number {
 	text-align: right;
 }
 
+table.ui {
+	table-layout: fixed;
+}
+
+table.ui td {
+	border-collapse: collapse;
+	border: 1px solid white;
+	padding: 1em;
+}
+
+table.ui td.input {
+	padding: 0;
+	height: 50px;
+}
+
+table.ui td.input button {
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	border: none;
+}
+
+table.ui td.input input {
+	border: none;
+	margin: 0;
+	padding: 1em;
+}
+
+td.wrap {
+	overflow-wrap: break-word;
+}
+
 @media screen and (min-width: 769px) {
 	div#ui {
 		width: 60%;
@@ -159,6 +209,13 @@ div#ui h1:first-child {
 }
 
 /* Add 1em of space between each content-card */
-.content-card + .content-card {
+.content-card+.content-card {
 	margin-top: 1em;
+}
+
+.error {
+	color: red;
+	font-size: 0.8em;
+	padding: 0.5em;
+	padding-top: 0em;
 }

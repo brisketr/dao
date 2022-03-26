@@ -7,23 +7,33 @@
 	import DevConsole from "./dev/DevConsole.svelte";
 	import Home from "./Home.svelte";
 	import Nav from "./Nav.svelte";
+	import Ipfs from "./debug/Ipfs.svelte";
 	import Description from "./token/Description.svelte";
 	import Token from "./token/Token.svelte";
 	import Mint from "./treasury/Mint.svelte";
 	import Treasury from "./treasury/Treasury.svelte";
 	import { contract } from "./web3/stores";
+	import Root from "./infoex/v1/components/Root.svelte";
 
 	const routes = {
 		"/": Home,
 		"/dev": DevConsole,
 		"/treasury": Treasury,
 		"/mint/:recipient?/:amount?": Mint,
+
 		"/token": Token,
 		"/token/description": Description,
+
+		"/brie": Root,
+		"/brie/*": Root,
+
 		"/airdrop/202107": Airdrop202107,
 		"/airdrop/signdrop/create": Create,
 		"/airdrop/signdrop/claim/:contractAddress/:airdropPrivateKey": Claim,
+
 		"/contributions/suggested": Suggested,
+
+		"/debug/ipfs": Ipfs,
 	};
 
 	$: {

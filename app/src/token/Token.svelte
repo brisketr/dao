@@ -145,7 +145,7 @@
 	{#if !$connected}
 		<p>You must be connected to web3 to view token stats.</p>
 	{:else}
-		<table>
+		<table class="ui">
 			{#if hasMetamask}
 				<tr>
 					<td>Add to MetaMask</td>
@@ -210,16 +210,6 @@
 </div>
 
 <style>
-	table {
-		table-layout: fixed;
-	}
-
-	table td {
-		border-collapse: collapse;
-		border: 1px solid white;
-		padding: 1em;
-	}
-
 	/* Make first column in table 150px wide */
 	table td:first-child {
 		width: 200px;

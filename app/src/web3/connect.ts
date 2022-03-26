@@ -5,7 +5,8 @@ import {
 	BRIBSnapshot202107__factory,
 	BRIBToken__factory,
 	BrisketTreasury__factory,
-	IJoePair__factory
+	IJoePair__factory,
+	InfoExchange__factory
 } from '@brisket-dao/core';
 import { NETWORK_METADATA, SUPPORTED_NETWORKS } from './constants';
 import { Contracts } from './contracts';
@@ -111,6 +112,7 @@ export async function connectWeb3() {
 			BRIBSnapshot202107: BRIBSnapshot202107__factory,
 			BRIBToken: BRIBToken__factory,
 			BrisketTreasury: BrisketTreasury__factory,
+			InfoExchangeGenesis: InfoExchange__factory,
 			MIMBRIBJoePair: IJoePair__factory
 		};
 

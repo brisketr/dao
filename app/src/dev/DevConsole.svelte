@@ -1,9 +1,12 @@
 <script lang="ts">
 	import {
-	BRIBAirdrop202107__factory,BRIBSnapshot202107__factory,BRIBToken__factory,
-	BrisketTreasury__factory
+		BRIBAirdrop202107__factory,
+		BRIBSnapshot202107__factory,
+		BRIBToken__factory,
+		BrisketTreasury__factory,
+		InfoExchange__factory,
 	} from "@brisket-dao/core";
-	import { connected,contract,ethersProvider } from "../web3/stores";
+	import { connected, contract, ethersProvider } from "../web3/stores";
 
 	// Define possible DEPLOY_STATES.
 	const DEPLOY_STATES = {
@@ -18,6 +21,7 @@
 		BrisketTreasury: DEPLOY_STATES.NOT_STARTED,
 		BRIBSnapshot202107: DEPLOY_STATES.NOT_STARTED,
 		BRIBAirdrop202107: DEPLOY_STATES.NOT_STARTED,
+		InfoExchangeGenesis: DEPLOY_STATES.NOT_STARTED,
 	};
 
 	$: {
@@ -39,6 +43,11 @@
 		// If BRIBAirdrop202107 is deployed, set state to DEPLOYED.
 		if ($contract.BRIBAirdrop202107) {
 			contractDeployStates.BRIBAirdrop202107 = DEPLOY_STATES.DEPLOYED;
+		}
+
+		// If InfoExchangeGenesis is deployed, set state to DEPLOYED.
+		if ($contract.InfoExchangeGenesis) {
+			contractDeployStates.InfoExchangeGenesis = DEPLOY_STATES.DEPLOYED;
 		}
 	}
 
@@ -199,6 +208,45 @@
 			console.error("Error deploying BRIBAirdrop202107 contract:", e);
 		}
 	}
+
+	/**
+	 * Deploys the InfoExchange genesis contract.
+	 */
+	async function deployInfoExchangeGenesisContract() {
+		// Get the token contract address. Return if not deployed.
+		const token = $contract.BRIBToken;
+
+		if (!token) {
+			console.log("BRIBToken contract not deployed");
+			return;
+		}
+
+		// Initialize contract factory.
+		const factory = new InfoExchange__factory($ethersProvider.getSigner());
+
+		// Deploy the contract.
+		console.log("deploying InfoExchange genesis contract");
+		contractDeployStates["InfoExchangeGenesis"] = DEPLOY_STATES.DEPLOYING;
+
+		try {
+			const infoExchange = await factory.deploy(token.address);
+
+			// Wait for the transaction to be mined.
+			await infoExchange.deployed();
+			console.log(
+				"InfoExchange genesis contract deployed at",
+				infoExchange.address
+			);
+
+			// Update the contract store.
+			$contract["InfoExchangeGenesis"] = infoExchange;
+			contractDeployStates["InfoExchangeGenesis"] =
+				DEPLOY_STATES.DEPLOYED;
+		} catch (e) {
+			contractDeployStates["InfoExchangeGenesis"] = DEPLOY_STATES.ERROR;
+			console.error("Error deploying InfoExchangeGenesis contract:", e);
+		}
+	}
 </script>
 
 <div id="ui">
@@ -286,6 +334,27 @@
 						{/if}
 					</button>
 				</td>
+			</tr>
+			<tr>
+				<td>InfoExchange[Genesis]</td>
+				<td>
+					<button
+						on:click={deployInfoExchangeGenesisContract}
+						disabled={contractDeployStates.BRIBToken !==
+							DEPLOY_STATES.DEPLOYED}
+					>
+						{#if contractDeployStates.InfoExchangeGenesis === DEPLOY_STATES.NOT_STARTED}
+							&#x2191; Deploy
+						{:else if contractDeployStates.InfoExchangeGenesis === DEPLOY_STATES.DEPLOYING}
+							🕘 Deploying...
+						{:else if contractDeployStates.InfoExchangeGenesis === DEPLOY_STATES.DEPLOYED}
+							💥 Deployed
+						{:else if contractDeployStates.InfoExchangeGenesis === DEPLOY_STATES.ERROR}
+							🛑 Error
+						{/if}
+					</button>
+				</td>
+			</tr>
 		</table>
 	{:else}
 		<p>Must be connected to deploy contracts.</p>
