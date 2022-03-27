@@ -27,8 +27,10 @@ build({
 	outdir: './public/build/',
 	plugins: [
 		alias({
-			'crypto': require.resolve('@peculiar/webcrypto'),
-			'stream': require.resolve('web-streams-polyfill')
+			'crypto': require.resolve('crypto-browserify'),
+			'stream': require.resolve('stream-browserify'),
+			'path': require.resolve('path-browserify'),
+			'assert': require.resolve('assert-browserify'),
 		}),
 		esbuildSvelte({
 			preprocess: sveltePreprocess(),

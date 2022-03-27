@@ -8,6 +8,7 @@
 	import Home from "./Home.svelte";
 	import Nav from "./Nav.svelte";
 	import Ipfs from "./debug/Ipfs.svelte";
+	import Orbit from "./debug/Orbit.svelte";
 	import Description from "./token/Description.svelte";
 	import Token from "./token/Token.svelte";
 	import Mint from "./treasury/Mint.svelte";
@@ -34,6 +35,7 @@
 		"/contributions/suggested": Suggested,
 
 		"/debug/ipfs": Ipfs,
+		"/debug/orbit": Orbit,
 	};
 
 	$: {
