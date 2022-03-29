@@ -32,6 +32,8 @@
 		if ($ipfs && $globalData && $exchangeContractGenesis) {
 			console.log(`Updating docs; Event count is ${$eventCount}`);
 			updateDocs($globalData, $identity, $exchangeContractGenesis);
+		} else {
+			console.info(`Waiting for ipfs and global data to be ready...`);
 		}
 	}
 </script>

@@ -290,7 +290,15 @@ contract InfoExchange {
      */
     function registerCid(string memory newCid) public {
         _cids[msg.sender] = newCid;
+
+        // Emit event.
+        emit CidRegistered(msg.sender, newCid);
     }
+
+    /**
+     * @dev Emitted when CID is registered.
+     */
+    event CidRegistered(address staker, string newCid);
 
     /**
      * @dev Emitted when the lowest staker is evicted.

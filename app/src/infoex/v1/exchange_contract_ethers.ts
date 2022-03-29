@@ -48,8 +48,14 @@ export class EthersExchangeContract implements ExchangeContract {
 		return this._contract.cid(address);
 	}
 
-	async registerCid(cid: string): Promise<void> {
-		await this._contract.registerCid(cid);
-
+	registerCid(cid: string): Promise<void> {
+		const ec = this;
+		return new Promise<void>((resolve, reject) => {
+			ec._contract.registerCid(cid).then(() => {
+				resolve();
+			}).catch((error) => {
+				reject(error);
+			});
+		});
 	}
 }

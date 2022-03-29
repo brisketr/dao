@@ -7,7 +7,7 @@ import RSAKey from 'seededrsa';
 import type { InfoDoc } from "./cipher_doc";
 import { RSAEncrypter } from "./encryption";
 import type { ExchangeContract, Staker } from './exchange_contract';
-import { acknowledgeInfo, cipherDocs, computeGroupInfoHash, Identity, infoDocs, needsCipherDocUpdate, needsOnChainCidUpdate, newInfoAvailable, publishIpfs, updateOnChainCid } from "./exchange_group";
+import { acknowledgeInfo, cipherDocs, computeGroupInfoHash, Identity, infoDocs, needsCipherDocUpdate, needsOnChainCidUpdate, newInfoAvailable, publishGlobal, updateOnChainCid } from "./exchange_group";
 import type { GlobalDataStore, LocalDataStore } from './storage';
 
 const allowedPhrases = [
@@ -187,7 +187,7 @@ describe("Exchange Group", async () => {
 
 		// Publish doc for account 0.
 		globalData.setActiveId(allowedIdentities[0].address);
-		const cid1 = await publishIpfs(webcrypto as any, globalData, allowedIdentities[0], exchange, accountInfoDocs[0]);
+		const cid1 = await publishGlobal(webcrypto as any, globalData, allowedIdentities[0], exchange, accountInfoDocs[0]);
 		expect(await needsOnChainCidUpdate(globalData, exchange, allowedIdentities[0])).to.be.true;
 		exchange.setActiveAccount(allowedIdentities[0].address);
 		await updateOnChainCid(exchange, cid1);
@@ -197,7 +197,7 @@ describe("Exchange Group", async () => {
 
 		// Publish doc for account 1.
 		globalData.setActiveId(allowedIdentities[1].address);
-		const cid2 = await publishIpfs(webcrypto as any, globalData, allowedIdentities[1], exchange, accountInfoDocs[1]);
+		const cid2 = await publishGlobal(webcrypto as any, globalData, allowedIdentities[1], exchange, accountInfoDocs[1]);
 		exchange.setActiveAccount(allowedIdentities[1].address);
 		expect(await needsOnChainCidUpdate(globalData, exchange, allowedIdentities[1])).to.be.true;
 		await updateOnChainCid(exchange, cid2);
@@ -217,7 +217,7 @@ describe("Exchange Group", async () => {
 		// Publish doc again for account 0.
 		expect(await needsCipherDocUpdate(globalData, exchange, allowedIdentities[0])).to.be.true;
 		globalData.setActiveId(allowedIdentities[0].address);
-		await publishIpfs(webcrypto as any, globalData, allowedIdentities[0], exchange, accountInfoDocs[0]);
+		await publishGlobal(webcrypto as any, globalData, allowedIdentities[0], exchange, accountInfoDocs[0]);
 		expect(await needsOnChainCidUpdate(globalData, exchange, allowedIdentities[1])).to.be.false;
 		expect(await needsCipherDocUpdate(globalData, exchange, allowedIdentities[0])).to.be.false;
 
@@ -229,7 +229,7 @@ describe("Exchange Group", async () => {
 
 		// Publish doc for account 2.
 		globalData.setActiveId(allowedIdentities[2].address);
-		const cid3 = await publishIpfs(webcrypto as any, globalData, allowedIdentities[2], exchange, accountInfoDocs[2]);
+		const cid3 = await publishGlobal(webcrypto as any, globalData, allowedIdentities[2], exchange, accountInfoDocs[2]);
 		exchange.setActiveAccount(allowedIdentities[2].address);
 		expect(await needsOnChainCidUpdate(globalData, exchange, allowedIdentities[2])).to.be.true;
 		await updateOnChainCid(exchange, cid3);
@@ -251,11 +251,11 @@ describe("Exchange Group", async () => {
 		expect(await needsCipherDocUpdate(globalData, exchange, allowedIdentities[0])).to.be.true;
 		expect(await needsCipherDocUpdate(globalData, exchange, allowedIdentities[1])).to.be.true;
 		globalData.setActiveId(allowedIdentities[0].address);
-		await publishIpfs(webcrypto as any, globalData, allowedIdentities[0], exchange, accountInfoDocs[0]);
+		await publishGlobal(webcrypto as any, globalData, allowedIdentities[0], exchange, accountInfoDocs[0]);
 		expect(await needsOnChainCidUpdate(globalData, exchange, allowedIdentities[0])).to.be.false;
 		expect(await needsCipherDocUpdate(globalData, exchange, allowedIdentities[0])).to.be.false;
 		globalData.setActiveId(allowedIdentities[1].address);
-		await publishIpfs(webcrypto as any, globalData, allowedIdentities[1], exchange, accountInfoDocs[1]);
+		await publishGlobal(webcrypto as any, globalData, allowedIdentities[1], exchange, accountInfoDocs[1]);
 		expect(await needsOnChainCidUpdate(globalData, exchange, allowedIdentities[1])).to.be.false;
 		expect(await needsCipherDocUpdate(globalData, exchange, allowedIdentities[1])).to.be.false;
 

@@ -332,15 +332,15 @@ describe("Unit tests", function () {
 
       // Expect revert because a week hasn't passed
       await expect(this.infoExchange.connect(this.users[0])
-        .unstake(this.users[0].address, hre.ethers.utils.parseUnits(this.initialBRIBBalances[0].toString())))
+        .unstake(hre.ethers.utils.parseUnits(this.initialBRIBBalances[0].toString())))
         .to.be.revertedWith("must stake for at least a week");
-      
+
       // Increase time by a week
       await hre.ethers.provider.send("evm_increaseTime", [60 * 60 * 24 * 7]);
-      
+
       // Unstake
       await expect(this.infoExchange.connect(this.users[0])
-        .unstake(this.users[0].address, hre.ethers.utils.parseUnits(this.initialBRIBBalances[0].toString())))
+        .unstake(hre.ethers.utils.parseUnits(this.initialBRIBBalances[0].toString())))
         .to.emit(this.infoExchange, "Unstaked").withArgs(this.users[0].address, hre.ethers.utils.parseUnits(this.initialBRIBBalances[0].toString()));
 
       // Verify balance

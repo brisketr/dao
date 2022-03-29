@@ -4,7 +4,7 @@
 	import type { Staker } from "../exchange_contract";
 	import {
 		needsOnChainCidUpdate,
-		publishIpfs,
+		publishGlobal,
 		updateOnChainCid,
 	} from "../exchange_group";
 	import { exchangeContractGenesis, globalData, identity } from "../stores";
@@ -27,7 +27,7 @@
 
 	async function save() {
 		console.info("Saving...");
-		const cid = await publishIpfs(
+		const cid = await publishGlobal(
 			crypto,
 			$globalData,
 			$identity,

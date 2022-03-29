@@ -26,9 +26,9 @@ export interface InfoDoc {
  */
 export interface InfoCipherDoc {
 	/**
-	 * IPNS to get latest version of the document.
+	 * DB to get latest version of the document.
 	 */
-	ipns: string;
+	nameDb: string;
 
 	/**
 	 * CID that the doc is stored at. Only set after retrieval. Not stored.
@@ -120,7 +120,7 @@ export async function encryptInfoDoc(
 ): Promise<InfoCipherDoc> {
 
 	const result = {
-		ipns: '',
+		nameDb: '',
 		ownerRSAPubKey: await rsaEncrypter.exportPublicKey(),
 		allowedRSAPublicKeys: allowedRSAPublicKeys,
 		encryptedDocAESKeys: [],

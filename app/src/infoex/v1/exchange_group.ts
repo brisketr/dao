@@ -132,19 +132,19 @@ export async function cipherDoc(
 	console.info(`Getting cipher doc for CID ${cid}...`);
 	const cipherDoc = await getCipherDoc(globalData, cid);
 
-	// If IPNS is set, resolve the IPNS name.
-	if (cipherDoc.ipns !== "") {
+	// If name db is set, resolve the name.
+	if (cipherDoc.nameDb !== "") {
 		try {
-			console.info(`Resolving IPNS name ${cipherDoc.ipns}...`);
+			console.info(`Resolving name db ${cipherDoc.nameDb}...`);
 			const resolvedCid = await globalData.resolveName(
-				cipherDoc.ipns,
+				cipherDoc.nameDb,
 				"infoex_v1_cipher_doc"
 			);
 
-			console.info(`Resolved IPNS name ${cipherDoc.ipns} to ${resolvedCid}`);
+			console.info(`Resolved name ${cipherDoc.nameDb}/infoex_v1_cipher_doc to ${resolvedCid}`);
 			return getCipherDoc(globalData, resolvedCid);
 		} catch (e) {
-			console.error("Failed to resolve IPNS name", cipherDoc.ipns, cid, e);
+			console.error("Failed to resolve name from name db", cipherDoc.nameDb, cid, e);
 			return cipherDoc;
 		}
 	} else {
@@ -309,14 +309,14 @@ async function allowedKeys(
  * @param {InfoDoc} The doc to encrypt and publish.
  * @returns {Promise<string>} The CID of the published cipher doc.
  */
-export async function publishIpfs(
+export async function publishGlobal(
 	crypto: Crypto,
 	globalData: GlobalDataStore,
 	identity: Identity,
 	contract: ExchangeContract,
 	doc: InfoDoc
 ): Promise<string> {
-	console.info("Encrypting and publishing info doc to IPFS...");
+	console.info("Encrypting and publishing info doc to global data store...");
 	const validKeys = await allowedKeys(globalData, contract, identity);
 
 	// Encrypt the doc.
@@ -331,17 +331,17 @@ export async function publishIpfs(
 
 	// Get current cipher doc for identity.
 	try {
-		console.info(`Updating IPNS for ${identity.address} to ${cid}...`);
+		console.info(`Updating name db for ${identity.address} to ${cid}...`);
 		const name = await globalData.publishName("infoex_v1_cipher_doc", cid);
 
 		const cdoc = await cipherDoc(globalData, contract, identity.address);
 
-		// If IPNS is set, update IPNS to point to new CID.
-		if (cdoc === null || cdoc.ipns === "" || cdoc.ipns === null || cdoc.ipns === undefined) {
-			console.info(`No IPNS set for ${identity.address}, will init IPNS.`);
+		// If name is set, update name to point to new CID.
+		if (cdoc === null || cdoc.nameDb === "" || cdoc.nameDb === null || cdoc.nameDb === undefined) {
+			console.info(`No name set for ${identity.address}; initializing name`);
 
 			// Update IPNS.
-			encryptedDoc.ipns = name;
+			encryptedDoc.nameDb = name;
 
 			// Re-publish doc.
 			const serializedDoc = await serializeInfoCipherDoc(encryptedDoc);
@@ -349,13 +349,13 @@ export async function publishIpfs(
 			const cid = await globalData.put(serializedDoc);
 			console.info(`Published cipher doc for ${identity.address} to ${cid}`);
 
-			console.info(`Updating IPNS for ${identity.address} to ${cid}...`);
+			console.info(`Updating name for ${identity.address} to ${cid}...`);
 			await globalData.publishName("infoex_v1_cipher_doc", cid);
 
 			return cid;
 		}
 	} catch (e) {
-		console.error("Failed to update IPNS", identity.address, e);
+		console.error("Failed to update name", identity.address, e);
 	}
 
 	return cid;

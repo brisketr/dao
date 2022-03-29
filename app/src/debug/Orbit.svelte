@@ -1,7 +1,13 @@
 <script lang="js">
+	import { NOISE } from "@chainsafe/libp2p-noise";
 	import * as IPFS from "ipfs-core";
+	import Libp2p from "libp2p";
+	import GossipSub from "libp2p-gossipsub";
+	import MPLEX from "libp2p-mplex";
+	import WebRTCStar from "libp2p-webrtc-star";
+	import Websockets from "libp2p-websockets";
+	import filters from "libp2p-websockets/src/filters";
 	import OrbitDB from "orbit-db";
-import { ipfs } from "../infoex/v1/stores";
 
 	let node = null;
 	let orbitdb = null;
@@ -20,6 +26,56 @@ import { ipfs } from "../infoex/v1/stores";
 	let remoteDbLoadProgress = "";
 	let remoteDbValue = "";
 
+	const transportKey = Websockets.prototype[Symbol.toStringTag];
+
+	const libp2pBundle = (opts) => {
+		// Set convenience variables to clearly showcase some of the useful things that are available
+		const peerId = opts.peerId;
+		const bootstrapList = opts.config.Bootstrap;
+
+		// Build and return our libp2p node
+		// n.b. for full configuration options, see https://github.com/libp2p/js-libp2p/blob/master/doc/CONFIGURATION.md
+		return Libp2p.create({
+			peerId,
+			addresses: {
+				listen: [
+					"/dns4/webrtc-star.app.brisket.lol/tcp/443/wss/p2p-webrtc-star",
+					// "/dns4/wrtc-star1.par.dwebops.pub/tcp/443/wss/p2p-webrtc-star",
+					// "/dns4/wrtc-star2.sjc.dwebops.pub/tcp/443/wss/p2p-webrtc-star",
+				],
+			},
+			modules: {
+				// transport: [WebRTCStar, WebRTCDirect, Websockets],
+				transport: [WebRTCStar, Websockets],
+				// transport: [Websockets],
+				streamMuxer: [MPLEX],
+				connEncryption: [NOISE],
+				pubsub: GossipSub,
+			},
+			config: {
+				transport: {
+					// This is added for local demo!
+					// In a production environment the default filter should be used
+					// where only DNS + WSS addresses will be dialed by websockets in the browser.
+					[transportKey]: {
+						filter: filters.all,
+					},
+				},
+				peerDiscovery: {
+					autoDial: true,
+					bootstrap: {
+						interval: 30e3,
+						enabled: true,
+						list: bootstrapList,
+					},
+				},
+				pubsub: {
+					enabled: true,
+				},
+			},
+		});
+	};
+
 	async function orbitTest() {
 		console.log("Init Orbit");
 
@@ -30,20 +86,10 @@ import { ipfs } from "../infoex/v1/stores";
 			preload: {
 				enabled: false,
 			},
-			EXPERIMENTAL: {
-				ipnsPubsub: true,
-			},
 			config: {
-				Addresses: {
-					Swarm: [
-						"/dns4/webrtc-star.app.brisket.lol/tcp/443/wss/p2p-webrtc-star",
-						// "/dns4/wrtc-star1.par.dwebops.pub/tcp/443/wss/p2p-webrtc-star/",
-						// "/dns4/wrtc-star2.sjc.dwebops.pub/tcp/443/wss/p2p-webrtc-star/",
-						// "/dns4/webrtc-star.discovery.libp2p.io/tcp/443/wss/p2p-webrtc-star/",
-					],
-				},
-				Bootstrap: []
+				Bootstrap: [],
 			},
+			libp2p: libp2pBundle,
 		});
 
 		ipfsId = (await node.id()).id;
@@ -54,16 +100,19 @@ import { ipfs } from "../infoex/v1/stores";
 				`Connected to ${connection.remotePeer.toB58String()}!`
 			);
 
-			ipfsPeerCount = (await node.swarm.peers()).length
+			ipfsPeerCount = (await node.swarm.peers()).length;
 		});
 
-		node.libp2p.connectionManager.on("peer:disconnect", async (connection) => {
-			console.info(
-				`Disconnected from ${connection.remotePeer.toB58String()}!`
-			);
+		node.libp2p.connectionManager.on(
+			"peer:disconnect",
+			async (connection) => {
+				console.info(
+					`Disconnected from ${connection.remotePeer.toB58String()}!`
+				);
 
-			ipfsPeerCount = (await node.swarm.peers()).length
-		});
+				ipfsPeerCount = (await node.swarm.peers()).length;
+			}
+		);
 
 		orbitdb = await OrbitDB.createInstance(node);
 		myDb = await orbitdb.eventlog("my.log.db");
@@ -92,6 +141,15 @@ import { ipfs } from "../infoex/v1/stores";
 		});
 
 		await myDb.load(10);
+
+		try {
+			console.log("Connecting to full node...");
+			await node.swarm.connect(
+				"/ip4/127.0.0.1/tcp/4003/ws/p2p/12D3KooWAQRb7ewTnmRNWmafDmQ4pkgAAJ5bVEb1B31WFADtp8x6"
+			);
+		} catch (e) {
+			console.error(`Failed to connect to full node`, e);
+		}
 	}
 
 	orbitTest();
@@ -171,7 +229,8 @@ import { ipfs } from "../infoex/v1/stores";
 			queryRemoteDb();
 		});
 
-		let maxTotal = 0, loaded = 0;
+		let maxTotal = 0,
+			loaded = 0;
 
 		remoteDb.events.on(
 			"replicate.progress",
@@ -189,9 +248,7 @@ import { ipfs } from "../infoex/v1/stores";
 
 				remoteDbLoadProgress = `${maxTotal} / ${total}`;
 
-				console.info(
-					`Remote DB Load Progress: ${maxTotal} / ${total}`
-				);
+				console.info(`Remote DB Load Progress: ${maxTotal} / ${total}`);
 			}
 		);
 	}

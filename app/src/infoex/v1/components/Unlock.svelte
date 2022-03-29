@@ -133,7 +133,7 @@
 	}
 
 	$: {
-		if (error === "" && $locked && $connected && !unlocking) {
+		if (error === "" && $locked && $connected && !unlocking && $ethersProvider) {
 			unlock();
 		} else {
 			console.info("Not connected");
@@ -141,7 +141,7 @@
 	}
 
 	onMount(async () => {
-		if (error === "" && $locked && $connected && !unlocking) {
+		if (error === "" && $locked && $connected && !unlocking && $ethersProvider) {
 			unlock();
 		}
 	});
