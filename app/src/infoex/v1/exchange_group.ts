@@ -134,19 +134,14 @@ export async function cipherDoc(
 
 	// If name db is set, resolve the name.
 	if (cipherDoc.nameDb !== "") {
-		try {
-			console.info(`Resolving name db ${cipherDoc.nameDb}...`);
-			const resolvedCid = await globalData.resolveName(
-				cipherDoc.nameDb,
-				"infoex_v1_cipher_doc"
-			);
+		console.info(`Resolving name db ${cipherDoc.nameDb}...`);
+		const resolvedCid = await globalData.resolveName(
+			cipherDoc.nameDb,
+			"infoex_v1_cipher_doc"
+		);
 
-			console.info(`Resolved name ${cipherDoc.nameDb}/infoex_v1_cipher_doc to ${resolvedCid}`);
-			return getCipherDoc(globalData, resolvedCid);
-		} catch (e) {
-			console.error("Failed to resolve name from name db", cipherDoc.nameDb, cid, e);
-			return cipherDoc;
-		}
+		console.info(`Resolved name ${cipherDoc.nameDb}/infoex_v1_cipher_doc to ${resolvedCid}`);
+		return getCipherDoc(globalData, resolvedCid);
 	} else {
 		return cipherDoc;
 	}
@@ -332,13 +327,24 @@ export async function publishGlobal(
 	// Get current cipher doc for identity.
 	try {
 		console.info(`Updating name db for ${identity.address} to ${cid}...`);
-		const name = await globalData.publishName("infoex_v1_cipher_doc", cid);
 
-		const cdoc = await cipherDoc(globalData, contract, identity.address);
+		let name = await globalData.publishName("infoex_v1_cipher_doc", cid);
+		let cdoc = null;
+
+		try {
+			cdoc = await cipherDoc(globalData, contract, identity.address);
+		} catch {
+			console.warn(`Failed to look up existing names for ${identity.address}.`);
+		}
 
 		// If name is set, update name to point to new CID.
-		if (cdoc === null || cdoc.nameDb === "" || cdoc.nameDb === null || cdoc.nameDb === undefined) {
-			console.info(`No name set for ${identity.address}; initializing name`);
+		if (cdoc === null || cdoc.nameDb === "" || cdoc.nameDb === null || cdoc.nameDb === undefined || name !== cdoc.nameDb) {
+
+			if (cdoc && cdoc.nameDb && name !== cdoc.nameDb) {
+				console.warn(`Name db address changed for ${identity.address} from ${cdoc.nameDb} to ${name}`);
+			} else {
+				console.info(`No name db set for ${identity.address}; initializing name db`);
+			}
 
 			// Update IPNS.
 			encryptedDoc.nameDb = name;
@@ -390,12 +396,14 @@ export async function publishedPubkeyMatches(
  * @param {GlobalDataStore} globalData The global store.
  * @param {ExchangeContract} contract The contract holding on-chain oracle data.
  * @param {Identity} identity The identity of the data publisher.
+ * @param {string} newCid The most recent known cipher doc CID (optional, used to check name db for changes).
  * @returns {Promise<boolean>} True if the on-chain CID needs to be updated.
  */
 export async function needsOnChainCidUpdate(
 	globalData: GlobalDataStore,
 	contract: ExchangeContract,
 	identity: Identity,
+	newCid: string
 ): Promise<boolean> {
 	const cid = await contract.cid(identity.address);
 
@@ -403,8 +411,21 @@ export async function needsOnChainCidUpdate(
 		return true;
 	}
 
-	const cdoc = await cipherDoc(globalData, contract, identity.address);
-	return !(await publishedPubkeyMatches(globalData, contract, identity.address, await identity.encrypter.exportPublicKey()));
+	try {
+		const latestCipherDoc = await getCipherDoc(globalData, newCid);
+		const cdoc = await cipherDoc(globalData, contract, identity.address);
+
+		if (latestCipherDoc.nameDb !== cdoc.nameDb) {
+			console.info(`Name db changed for ${identity.address} from ${cdoc.nameDb} to ${latestCipherDoc.nameDb}`);
+
+			return true;
+		}
+
+		return !(await publishedPubkeyMatches(globalData, contract, identity.address, await identity.encrypter.exportPublicKey()));
+	} catch (e) {
+		console.error("Failed to retrieve cipher doc to check if on-chain CID needs to be updated", identity.address, e);
+		return true;
+	}
 }
 
 /**

@@ -20,7 +20,7 @@ export class IpfsOrbitGlobalStore implements GlobalDataStore {
 		newStore.ipfs = ipfs;
 		newStore.orbit = orbit;
 		console.info("Initializing names database...");
-		newStore.namesDb = await orbit.eventlog("my.log.db");
+		newStore.namesDb = await orbit.eventlog("names");
 		const namesDbAddr = newStore.namesDb.address.toString();
 		newStore.namesDbs[namesDbAddr] = newStore.namesDb;
 
@@ -65,26 +65,26 @@ export class IpfsOrbitGlobalStore implements GlobalDataStore {
 	}
 
 
-	private async _getNames(name: string): Promise<Map<DataStoreName, DataStoreKey>> {
-		console.info(`Retrieving names for ${name}...`);
+	private async _getNames(nameDbAddr: string): Promise<Map<DataStoreName, DataStoreKey>> {
+		console.info(`Retrieving names for ${nameDbAddr}...`);
 
 		// Initialize names db if not set.
-		if (!this.namesDbs.hasOwnProperty(name)) {
-			if (this.namesDb.address.toString() !== name) {
-				console.info(`Names not initalized for ${name}, initializing...`);
-				this.namesDbs[name] = await this.orbit.eventlog(name);
-				console.log(`Beginning replication of names db: ${name}...`);
-				this.namesDbsReplicated[name] = false;
+		if (!this.namesDbs.hasOwnProperty(nameDbAddr)) {
+			if (this.namesDb.address.toString() !== nameDbAddr) {
+				console.info(`Names not initalized for ${nameDbAddr}, initializing...`);
+				this.namesDbs[nameDbAddr] = await this.orbit.eventlog(nameDbAddr);
+				console.log(`Beginning replication of names db: ${nameDbAddr}...`);
+				this.namesDbsReplicated[nameDbAddr] = false;
 
-				this.namesDbs[name].events.on("replicated", () => {
-					console.info(`Names db ${name} replicated.`);
-					this.namesDbsReplicated[name] = true;
+				this.namesDbs[nameDbAddr].events.on("replicated", () => {
+					console.info(`Names db ${nameDbAddr} replicated.`);
+					this.namesDbsReplicated[nameDbAddr] = true;
 				});
 
 				let maxTotal = 0,
 					loaded = 0;
 
-				this.namesDbs[name].events.on(
+				this.namesDbs[nameDbAddr].events.on(
 					"replicate.progress",
 					(address, hash, entry, progress, total) => {
 						loaded++;
@@ -98,34 +98,34 @@ export class IpfsOrbitGlobalStore implements GlobalDataStore {
 							0,
 						]);
 
-						console.info(`Names db ${name} DB Load Progress: ${maxTotal} / ${total}`);
+						console.info(`Names db ${nameDbAddr} DB Load Progress: ${maxTotal} / ${total}`);
 					}
 				);
 			}
 		}
 
-		const db = this.namesDbs[name];
+		const db = this.namesDbs[nameDbAddr];
 
 		// Asynchronously wait up to 30 seconds for condition: this.namesDbsReplicated[name] == true
 		try {
 			await new Promise((resolve, reject) => {
 				const startTime = Date.now();
 				const interval = setInterval(() => {
-					if (this.namesDbsReplicated[name]) {
+					if (this.namesDbsReplicated[nameDbAddr]) {
 						clearInterval(interval);
 						resolve(true);
 					} else {
 						if (Date.now() - startTime > 30000) {
 							clearInterval(interval);
-							reject(new Error(`Names db ${name} not replicated after 30 seconds.`));
+							reject(new Error(`Names db ${nameDbAddr} not replicated after 30 seconds.`));
 						} else {
-							console.info(`Waiting for names db ${name} to replicate (waited ${Date.now() - startTime} ms)...`);
+							console.info(`Waiting for names db ${nameDbAddr} to replicate (waited ${Date.now() - startTime} ms)...`);
 						}
 					}
 				}, 1000);
 			});
 		} catch (e) {
-			console.error(`Error waiting for names db ${name} to replicate: ${e}`);
+			console.error(`Error waiting for names db ${nameDbAddr} to replicate: ${e}`);
 		}
 
 		const names = db.iterator({ limit: 1 })
@@ -133,7 +133,7 @@ export class IpfsOrbitGlobalStore implements GlobalDataStore {
 			.map((e) => e.payload.value);
 
 		if (names.length === 0) {
-			console.info(`Names not set for ${name}.`);
+			console.info(`Names not set for ${nameDbAddr}.`);
 			throw new NamesUndefinedError();
 		}
 

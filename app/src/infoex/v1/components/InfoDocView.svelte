@@ -14,6 +14,8 @@
 
 	let editable = false;
 	let editing = false;
+	let publishing = false;
+	let publishingError = "";
 	let newAccount = "";
 
 	$: {
@@ -26,7 +28,9 @@
 	}
 
 	async function save() {
+		publishing = true;
 		console.info("Saving...");
+		console.info("Publishing to global data store...");
 		const cid = await publishGlobal(
 			crypto,
 			$globalData,
@@ -35,15 +39,33 @@
 			doc
 		);
 
-		if (
-			await needsOnChainCidUpdate(
+		console.info(
+			"Published to global data store; Checking if on-chain data needs updated."
+		);
+
+		let needsUpdate = false;
+
+		try {
+			needsUpdate = await needsOnChainCidUpdate(
 				$globalData,
 				$exchangeContractGenesis,
-				$identity
-			)
-		) {
+				$identity,
+				cid
+			);
+		} catch (e) {
+			console.error(
+				`Error checking if on-chain data needs updated: ${e}; assuming it does need updated.`
+			);
+			needsUpdate = true;
+		}
+
+		if (needsUpdate) {
+			console.info(
+				"On-chain data needs updated; Updating on-chain data."
+			);
 			console.info("Updating on-chain CID...");
 			await updateOnChainCid($exchangeContractGenesis, cid);
+			console.info("Updated on-chain data.");
 		}
 
 		console.info("Saved!");
