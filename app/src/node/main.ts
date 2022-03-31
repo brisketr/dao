@@ -1,5 +1,11 @@
+import { NOISE } from "@chainsafe/libp2p-noise";
+import filters from "libp2p-websockets/src/filters";
+import GossipSub from "libp2p-gossipsub";
 import { ethers } from "ethers";
 import * as IPFS from "ipfs-core";
+import Libp2p from "libp2p";
+import MPLEX from "libp2p-mplex";
+import Websockets from "libp2p-websockets";
 import OrbitDB from "orbit-db";
 import { deserializeInfoCipherDoc } from "../infoex/v1/cipher_doc";
 import { EthersExchangeContract } from "../infoex/v1/exchange_contract_ethers";
@@ -174,9 +180,68 @@ async function pinContent(ipfs, orbit, contracts: Contracts) {
 	}
 }
 
+const transportKey = Websockets.prototype[Symbol.toStringTag];
+
+const libp2pBundle = (opts) => {
+	// Set convenience variables to clearly showcase some of the useful things that are available
+	const peerId = opts.peerId;
+	const bootstrapList = opts.config.Bootstrap;
+
+	// Build and return our libp2p node
+	// n.b. for full configuration options, see https://github.com/libp2p/js-libp2p/blob/master/doc/CONFIGURATION.md
+	return Libp2p.create({
+		peerId,
+		connectionManager: {
+			minConnections: 25,
+			maxConnections: 100,
+			pollInterval: 5000,
+		},
+		addresses: {
+			listen: [
+				"/ip4/0.0.0.0/tcp/4003/ws",
+				// "/ip4/0.0.0.0/tcp/4002",
+				// "/dns4/webrtc-star.app.brisket.lol/tcp/443/wss/p2p-webrtc-star",
+				// "/dns4/wrtc-star1.par.dwebops.pub/tcp/443/wss/p2p-webrtc-star",
+				// "/dns4/wrtc-star2.sjc.dwebops.pub/tcp/443/wss/p2p-webrtc-star",
+			],
+		},
+		modules: {
+			// transport: [WebRTCStar, WebRTCDirect, Websockets],
+			// transport: [WebRTCStar, Websockets],
+			transport: [Websockets],
+			streamMuxer: [MPLEX],
+			connEncryption: [NOISE],
+			pubsub: GossipSub,
+		},
+		config: {
+			transport: {
+				// This is added for local demo!
+				// In a production environment the default filter should be used
+				// where only DNS + WSS addresses will be dialed by websockets in the browser.
+				[transportKey]: {
+					filter: filters.all,
+				},
+			},
+			peerDiscovery: {
+				autoDial: true,
+				bootstrap: {
+					interval: 30e3,
+					enabled: true,
+					list: bootstrapList,
+				},
+			},
+			pubsub: {
+				enabled: true,
+			},
+		},
+	});
+};
+
 async function main() {
 	console.info("Starting Brie node...");
-	const ipfs = (await IPFS.create()) as any;
+	const ipfs = (await IPFS.create({
+		libp2p: libp2pBundle
+	})) as any;
 	const ipfsId = (await ipfs.id()).id;
 	const orbit = await OrbitDB.createInstance(ipfs);
 	console.log(`IPFS node created with ID: ${ipfsId}`);

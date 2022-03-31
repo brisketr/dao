@@ -207,6 +207,16 @@ export async function decryptInfoCipherDoc(
 	// Deserialize the document.
 	const doc = await deserializeInfoDoc(serializedDoc);
 
+	// Truncate accounts to a maximum of 20 values.
+	if (doc.accounts !== undefined && doc.accounts !== null) {
+		doc.accounts = doc.accounts.slice(0, 20);
+	}
+
+	// Deduplicate accounts.
+	if (doc.accounts !== undefined && doc.accounts !== null) {
+		doc.accounts = doc.accounts.filter((value, index, self) => self.indexOf(value) === index);
+	}
+
 	// Iterate all accounts in doc and strip any that are not valid ethereum addresses.
 	for (const account of doc.accounts) {
 		if (account.address.match(/^0x[0-9a-fA-F]{40}$/) === null) {

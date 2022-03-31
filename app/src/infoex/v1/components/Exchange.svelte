@@ -8,6 +8,7 @@
 		Identity,
 		infoDocs,
 		needsCipherDocUpdate,
+		needsOnChainCidUpdate,
 		publishGlobal,
 		updateOnChainCid,
 	} from "../exchange_group";
@@ -87,12 +88,27 @@
 					globalData,
 					identity,
 					infoEx,
-					$latestDoc
+					$latestDoc,
+					$latestCipherDoc
 				);
 
 				$latestCipherDoc = cipherDoc;
 				$latestCid = cipherDoc.cid;
 				console.info(`Published updated doc to global data store.`);
+
+				try {
+					$needsOnChainPublish = await needsOnChainCidUpdate(
+						globalData,
+						infoEx,
+						identity,
+						cipherDoc.cid
+					);
+				} catch (e) {
+					console.error(
+						`Error checking if on-chain data needs updated: ${e}; assuming it does need updated.`
+					);
+					$needsOnChainPublish = true;
+				}
 			} else {
 				console.info(`No need to republish doc.`);
 			}
@@ -115,6 +131,7 @@
 		try {
 			await updateOnChainCid($exchangeContractGenesis, $latestCid);
 			onChainPublishState = "ready";
+			firstPublish = false;
 			$needsOnChainPublish = false;
 		} catch (e) {
 			console.error(`Error updating on-chain CID`, e);
@@ -146,7 +163,8 @@
 	[ 🖩 <a href="/#/brie">Dashboard</a> ]
 </p>
 
-{#if loading}
+<!-- Show loading if loading && docs has no values -->
+{#if loading && docs.size === 0}
 	<p>Loading...</p>
 {:else if !userStaker}
 	<p>You must be a staker to view this exchange.</p>

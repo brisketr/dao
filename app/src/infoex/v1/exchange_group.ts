@@ -298,10 +298,11 @@ async function allowedKeys(
  * Publishes new information off chain.
  * 
  * @param {Crypto} crypto The crypto object to use.
- * @param {GlobalDataStore} The global store.
+ * @param {GlobalDataStore} globalData The global store.
  * @param {Identity} identity The identity of the data publisher.
- * @param {ExchangeContract} The contract holding on-chain oracle data.
- * @param {InfoDoc} The doc to encrypt and publish.
+ * @param {ExchangeContract} contract The contract holding on-chain oracle data.
+ * @param {InfoDoc} doc The doc to encrypt and publish.
+ * @param {InfoCipherDoc} existingCipherDoc The current cipher doc (optional).
  * @returns {Promise<InfoCipherDoc>} The published cipher doc.
  */
 export async function publishGlobal(
@@ -309,14 +310,34 @@ export async function publishGlobal(
 	globalData: GlobalDataStore,
 	identity: Identity,
 	contract: ExchangeContract,
-	doc: InfoDoc
+	doc: InfoDoc,
+	existingCipherDoc: InfoCipherDoc = null
 ): Promise<InfoCipherDoc> {
 	console.info("Encrypting and publishing info doc to global data store...");
 	const validKeys = await allowedKeys(globalData, contract, identity);
 
+	const pubDoc = {
+		...doc,
+	}
+
+	// Remove cipher doc from pubDoc.
+	delete pubDoc.cipherDoc;
+
+	// Look up existing names db.
+	let cdoc = existingCipherDoc;
+
+	if (!cdoc) {
+		try {
+			cdoc = await cipherDoc(globalData, contract, identity.address);
+		} catch {
+			console.warn(`Failed to look up existing names for ${identity.address}.`);
+		}
+	}
+
 	// Encrypt the doc.
 	console.info("Encrypting info doc...");
-	const encryptedDoc = await encryptInfoDoc(crypto, validKeys, identity.encrypter, doc);
+	const encryptedDoc = await encryptInfoDoc(crypto, validKeys, identity.encrypter, pubDoc);
+	encryptedDoc.nameDb = cdoc?.nameDb ?? "";
 	const serializedDoc = await serializeInfoCipherDoc(encryptedDoc);
 
 	// Publish the doc.
@@ -330,13 +351,6 @@ export async function publishGlobal(
 		console.info(`Updating name db for ${identity.address} to ${cid}...`);
 
 		let name = await globalData.publishName("infoex_v1_cipher_doc", cid);
-		let cdoc = null;
-
-		try {
-			cdoc = await cipherDoc(globalData, contract, identity.address);
-		} catch {
-			console.warn(`Failed to look up existing names for ${identity.address}.`);
-		}
 
 		// If name is set, update name to point to new CID.
 		if (cdoc === null || cdoc.nameDb === "" || cdoc.nameDb === null || cdoc.nameDb === undefined || name !== cdoc.nameDb) {

@@ -12,7 +12,7 @@ import filters from "libp2p-websockets/src/filters";
 import OrbitDB from "orbit-db";
 import PeerID from 'peer-id';
 import type { Contracts } from "../../web3/contracts.js";
-import { address, contract, ethersProvider } from "../../web3/stores";
+import { address, contract } from "../../web3/stores";
 import type { RSAEncrypter } from "./encryption.js";
 import { EthersExchangeContract } from "./exchange_contract_ethers.js";
 import type { Identity } from "./exchange_group.js";
@@ -25,6 +25,7 @@ let encrypter: RSAEncrypter = null;
 let infoExchangeGenesis: InfoExchange = null;
 let eventCountLocal: number = 0;
 let addressLocal: string = "";
+let nameSub = null;
 
 eventCount.subscribe(async (e: number) => {
 	eventCountLocal = e;
@@ -48,14 +49,24 @@ address.subscribe(async (address: string) => {
 	}
 });
 
-export function resetIpfs() {
-	indexedDB.deleteDatabase('ipfs');
-	indexedDB.deleteDatabase('ipfs/blocks');
-	indexedDB.deleteDatabase('ipfs/datastore');
-	indexedDB.deleteDatabase('ipfs/pins');
-}
-
 const transportKey = Websockets.prototype[Symbol.toStringTag];
+
+/**
+ * Increases event count, but debounces it to prevent excessive calls.
+ */
+let eventUpdateInterval = null;
+
+function incEventCount() {
+	// // Clear the interval to prevent multiple calls
+	if (eventUpdateInterval) {
+		clearTimeout(eventUpdateInterval);
+	}
+
+	// Set the interval to update the event count
+	eventUpdateInterval = setTimeout(() => {
+		eventCount.update(e => e + 1);
+	}, 5000);
+}
 
 const libp2pBundle = (opts) => {
 	// Set convenience variables to clearly showcase some of the useful things that are available
@@ -66,6 +77,11 @@ const libp2pBundle = (opts) => {
 	// n.b. for full configuration options, see https://github.com/libp2p/js-libp2p/blob/master/doc/CONFIGURATION.md
 	return Libp2p.create({
 		peerId,
+		connectionManager: {
+			// minConnections: 25,
+			maxConnections: 100,
+			pollInterval: 5000,
+		},
 		addresses: {
 			listen: [
 				"/dns4/webrtc-star.app.brisket.lol/tcp/443/wss/p2p-webrtc-star",
@@ -117,9 +133,9 @@ async function createIpfs(repo: string, peerId: any) {
 			Bootstrap: [],
 		},
 		libp2p: libp2pBundle,
-		init: {
-			privateKey: peerId
-		}
+		// init: {
+		// 	privateKey: peerId
+		// }
 	});
 
 	node.libp2p.connectionManager.on("peer:connect", async (connection) => {
@@ -192,9 +208,6 @@ export async function connect() {
 		throw new Error("No address set");
 	}
 
-	ipfsConnected.set(false);
-	ipfsConnecting.set(true);
-
 	// Connect to IPFS.
 	console.info("Connecting to IPFS...");
 	const ipfsPeerId = await encrypter.peerId(cryptoKeys, PeerID);
@@ -208,61 +221,61 @@ export async function connect() {
 		ipfsPeerId
 	);
 
-	ipfs.set(newIpfs);
 	const ipfsId = await newIpfs.id();
 	const nodeId = ipfsId.id;
 
 	console.info(`Connected to IPFS as ${nodeId}`);
 
 	const newOrbit = await OrbitDB.createInstance(newIpfs);
-	orbit.set(newOrbit);
-	globalData.set(await IpfsOrbitGlobalStore.create(newIpfs, newOrbit));
+	const newGlobalData = await IpfsOrbitGlobalStore.create(newIpfs, newOrbit)
 	const ls = new LocalStorageStore();
 	ls.load();
-	localData.set(ls)
 
 	subscribeWeb3Events(infoExchangeGenesis);
 
 	exchangeContractGenesis.set(new EthersExchangeContract(
 		infoExchangeGenesis
 	));
+
+	if (nameSub) {
+		nameSub.cancel();
+	}
+
+	nameSub = newGlobalData.onNameEvent(async (nameDbAddr) => {
+		incEventCount();
+	});
+
+	orbit.set(newOrbit);
+	globalData.set(newGlobalData);
+	localData.set(ls)
+	ipfs.set(newIpfs);
+	ipfsConnected.set(false);
+	ipfsConnecting.set(true);
 }
 
 function subscribeWeb3Events(infoExchangeGenesis: InfoExchange) {
 	infoExchangeGenesis.on('CidRegistered', (staker, newCid) => {
 		console.log(`CID registered for staker ${staker}: ${newCid}`);
-
-		// Increment event count.
-		eventCount.set(eventCountLocal + 1);
-
+		incEventCount();
 		refreshCountdownInterval();
 	});
 
 
 	infoExchangeGenesis.on('Staked', (staker: string, amount: BigNumber) => {
 		console.info(`Event: Staked ${ethers.utils.formatUnits(amount, 18)} tokens from ${staker}`);
-
-		// Increment event count.
-		eventCount.set(eventCountLocal + 1);
-
+		incEventCount();
 		refreshCountdownInterval();
 	});
 
 	infoExchangeGenesis.on('Unstaked', (staker: string, amount: BigNumber) => {
 		console.info(`Event: Unstaked ${ethers.utils.formatUnits(amount, 18)} tokens from ${staker}`);
-
-		// Increment event count.
-		eventCount.set(eventCountLocal + 1);
-
+		incEventCount();
 		refreshCountdownInterval();
 	});
 
 	infoExchangeGenesis.on('EvictStaker', (staker: string) => {
 		console.info(`Event: EvictStaker ${staker}`);
-
-		// Increment event count.
-		eventCount.set(eventCountLocal + 1);
-
+		incEventCount();
 		refreshCountdownInterval();
 	});
 }

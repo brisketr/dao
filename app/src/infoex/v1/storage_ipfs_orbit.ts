@@ -8,13 +8,14 @@ export class IpfsOrbitGlobalStore implements GlobalDataStore {
 	private namesDb: any;
 	private namesDbs = {};
 	private namesDbsReplicated = {};
+	private nameEventSubscribers = [];
 
 	private constructor() { }
 
 	/**
 	 * Create with IPFS & Orbit.
 	 */
-	public static async create(ipfs: any, orbit: any) {
+	public static async create(ipfs: any, orbit: any): Promise<IpfsOrbitGlobalStore> {
 		console.info("Creating IPFS Orbit store...");
 		const newStore = new IpfsOrbitGlobalStore();
 		newStore.ipfs = ipfs;
@@ -45,6 +46,16 @@ export class IpfsOrbitGlobalStore implements GlobalDataStore {
 		const { cid } = await this.ipfs.add(value);
 		console.info(`Data stored: ${cid}`);
 		return cid.toString();
+	}
+
+	public onNameEvent(callback: (nameDbAddress: string) => void) {
+		this.nameEventSubscribers.push(callback);
+
+		return {
+			cancel: () => {
+				this.nameEventSubscribers = this.nameEventSubscribers.filter((sub) => sub !== callback);
+			}
+		}
 	}
 
 	public async get(key: DataStoreKey): Promise<string> {
@@ -84,7 +95,13 @@ export class IpfsOrbitGlobalStore implements GlobalDataStore {
 
 				this.namesDbs[nameDbAddr].events.on("replicated", () => {
 					console.info(`Names db ${nameDbAddr} replicated.`);
-					this.namesDbsReplicated[nameDbAddr] = true;
+
+					if (this.namesDbsReplicated[nameDbAddr]) {
+						// Notify naming event subscribers.
+						this.nameEventSubscribers.forEach((sub) => sub(nameDbAddr));
+					} else {
+						this.namesDbsReplicated[nameDbAddr] = true;
+					}
 				});
 
 				let maxTotal = 0,

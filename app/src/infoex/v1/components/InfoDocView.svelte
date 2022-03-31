@@ -57,7 +57,8 @@
 				$globalData,
 				$identity,
 				$exchangeContractGenesis,
-				doc
+				doc,
+				$latestCipherDoc
 			);
 
 			editing = false;
@@ -121,7 +122,7 @@
 		console.info(`Adding account \"${newAccount}\"...`);
 		let newDoc = doc;
 
-		if (newAccount) {
+		if (newAccount && !newDoc.accounts.find(a => a.address === newAccount)) {
 			newDoc.accounts.push({
 				address: newAccount,
 			});
@@ -196,13 +197,18 @@
 
 {#if editable}
 	{#if editing}
-		<input type="text" bind:value={newAccount} />
+		{#if doc.accounts.length < 20}
+			<input type="text" bind:value={newAccount} />
 
-		{#if newAccountError}
-			<div class="error">{newAccountError}</div>
+			{#if newAccountError}
+				<div class="error">{newAccountError}</div>
+			{/if}
+
+			<button on:click={add} disabled={!newAccountValid}>Add</button>
+		{:else}
+			<p>You have reached the maximum of 20 accounts.</p>
 		{/if}
 
-		<button on:click={add} disabled={!newAccountValid}>Add</button>
 		{#if publishingError}
 			<p class="error">{publishingError}</p>
 			<p>
