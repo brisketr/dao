@@ -165,7 +165,7 @@ table.ui td.input input {
 	padding: 1em;
 }
 
-td.wrap {
+.wrap {
 	overflow-wrap: break-word;
 }
 
@@ -204,7 +204,8 @@ div#ui h1:first-child {
 }
 
 /* Remove space from top of first heading in content-card container. */
-.content-card h2:first-child {
+.content-card h2:first-child,
+.content-card h3:first-child {
 	margin-top: 0;
 }
 

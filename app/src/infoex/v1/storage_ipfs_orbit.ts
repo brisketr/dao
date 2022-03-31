@@ -56,6 +56,12 @@ export class IpfsOrbitGlobalStore implements GlobalDataStore {
 
 		for await (const chunk of stream) {
 			console.info(`Retrieved chunk of size ${chunk.length} for key ${key}.`);
+
+			// If data + chunk were to be greater than 100K, throw an error.
+			if (data.length + chunk.length > 100 * 1024) {
+				throw new Error(`Data too large for key ${key}.`);
+			}
+
 			data += chunk.toString();
 		}
 

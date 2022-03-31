@@ -98,7 +98,11 @@
 	});
 </script>
 
-<h2>Genesis Exchange - Unstake</h2>
+<h2>👋 Genesis Exchange - Unstake</h2>
+
+<p>
+	[ 🖩 <a href="/#/brie">Dashboard</a> ]
+</p>
 
 <table class="ui">
 	<tr>
@@ -139,7 +143,7 @@
 				<p class="error">{unstakeError}</p>
 				<p>
 					<a href={window.location.toString()} on:click={retry}
-						>Retry</a
+						>Acknowledge</a
 					>
 				</p>
 			</td>

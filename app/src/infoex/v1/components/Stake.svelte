@@ -61,36 +61,43 @@
 		stakeError = "";
 	}
 
-	async function stake() {
+	async function requestApproval() {
 		const stakeAmt: BigNumber = ethers.utils.parseUnits(
 			amount.toString(),
 			18
 		);
 
-		if (!approved) {
-			stakeState = "approval-request";
+		stakeState = "approval-request";
+
+		try {
+			const approveTx = await brib.approve(
+				infoEx.contract().address,
+				stakeAmt
+			);
+
+			stakeState = "approval-waiting";
 
 			try {
-				const approveTx = await brib.approve(
-					infoEx.contract().address,
-					stakeAmt
-				);
-
-				stakeState = "approval-waiting";
-
-				try {
-					approveTx.wait();
-				} catch (e) {
-					stakeState = "error";
-					stakeError = "Error waiting for approve tx.";
-					console.error(stakeError, e);
-				}
+				approveTx.wait();
+				approved = true;
+				stakeState = "ready";
 			} catch (e) {
 				stakeState = "error";
-				stakeError = "Error requesting approval.";
+				stakeError = "Error waiting for approve tx.";
 				console.error(stakeError, e);
 			}
+		} catch (e) {
+			stakeState = "error";
+			stakeError = "Error requesting approval.";
+			console.error(stakeError, e);
 		}
+	}
+
+	async function stake() {
+		const stakeAmt: BigNumber = ethers.utils.parseUnits(
+			amount.toString(),
+			18
+		);
 
 		try {
 			stakeState = "stake-request";
@@ -114,6 +121,14 @@
 		}
 	}
 
+	async function stakeOrApprove() {
+		if (approved) {
+			stake();
+		} else {
+			requestApproval();
+		}
+	}
+
 	onMount(() => {
 		// Select the amount to stake.
 		stakeAmtEl.focus();
@@ -121,7 +136,16 @@
 	});
 </script>
 
-<h2>Genesis Exchange - Stake</h2>
+<h2>🥩 Genesis Exchange - Stake</h2>
+
+<p>
+	[ 🖩 <a href="/#/brie">Dashboard</a> ]
+</p>
+
+<p>
+	Please note that when you stake BRIB, you will be <strong>locking</strong>
+	your <strong>BRIB</strong> for <strong>one week</strong>.
+</p>
 
 <table class="ui">
 	<tr>
@@ -153,7 +177,7 @@
 				<p class="error">{stakeError}</p>
 				<p>
 					<a href={window.location.toString()} on:click={retry}
-						>Retry</a
+						>Acknowledge</a
 					>
 				</p>
 			</td>
@@ -163,7 +187,7 @@
 			<td />
 			<td class="input">
 				<button
-					on:click={stake}
+					on:click={stakeOrApprove}
 					disabled={stakeState != "ready" || !!amountError}
 				>
 					{#if stakeState == "ready"}

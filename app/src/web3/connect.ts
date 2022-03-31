@@ -78,10 +78,6 @@ export async function connectWeb3() {
 		});
 	}
 
-	// Set store to connected.
-	connecting.set(false);
-	connected.set(true);
-
 	// Connect to contracts.
 	let contracts = await connectContracts(ethersProvider);
 
@@ -103,6 +99,10 @@ export async function connectWeb3() {
 
 	// Store ethers provider.
 	ethersProviderStore.set(ethersProvider);
+
+	// Set store to connected.
+	connecting.set(false);
+	connected.set(true);
 
 	return ethersProvider;
 

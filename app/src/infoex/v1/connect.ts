@@ -12,7 +12,7 @@ import filters from "libp2p-websockets/src/filters";
 import OrbitDB from "orbit-db";
 import PeerID from 'peer-id';
 import type { Contracts } from "../../web3/contracts.js";
-import { address, contract } from "../../web3/stores";
+import { address, contract, ethersProvider } from "../../web3/stores";
 import type { RSAEncrypter } from "./encryption.js";
 import { EthersExchangeContract } from "./exchange_contract_ethers.js";
 import type { Identity } from "./exchange_group.js";
@@ -20,7 +20,6 @@ import { IpfsOrbitGlobalStore } from "./storage_ipfs_orbit.js";
 import { LocalStorageStore } from "./storage_local.js";
 import { eventCount, exchangeContractGenesis, globalData, identity, ipfs, ipfsConnected, ipfsConnecting, ipfsPeerCount, localData, orbit } from "./stores";
 import { refreshCountdownInterval } from "./unlock_countdown.js";
-
 
 let encrypter: RSAEncrypter = null;
 let infoExchangeGenesis: InfoExchange = null;
@@ -55,7 +54,6 @@ export function resetIpfs() {
 	indexedDB.deleteDatabase('ipfs/datastore');
 	indexedDB.deleteDatabase('ipfs/pins');
 }
-
 
 const transportKey = Websockets.prototype[Symbol.toStringTag];
 
@@ -124,16 +122,27 @@ async function createIpfs(repo: string, peerId: any) {
 		}
 	});
 
-	const ipfsId = (await node.id()).id;
-	console.log(`IPFS node created with ID: ${ipfsId}`);
-
 	node.libp2p.connectionManager.on("peer:connect", async (connection) => {
 		console.info(
 			`Connected to ${connection.remotePeer.toB58String()}!`
 		);
 
-		ipfsPeerCount.set((await node.swarm.peers()).length);
+		const peerCount = (await node.swarm.peers()).length;
+		ipfsPeerCount.set(peerCount);
 		console.log(`IPFS node peer count: ${(await node.swarm.peers()).length}`);
+
+		if (peerCount > 0) {
+			if (peerCount === 1) {
+				// Asynchronously wait on first peer to increase reliability.
+				await new Promise((resolve) => setTimeout(resolve, 2000));
+			}
+
+			ipfsConnected.set(true);
+			ipfsConnecting.set(false);
+		} else {
+			ipfsConnected.set(false);
+			ipfsConnecting.set(true);
+		}
 	});
 
 	node.libp2p.connectionManager.on(
@@ -143,10 +152,22 @@ async function createIpfs(repo: string, peerId: any) {
 				`Disconnected from ${connection.remotePeer.toB58String()}!`
 			);
 
-			ipfsPeerCount.set((await node.swarm.peers()).length);
+			const peerCount = (await node.swarm.peers()).length;
+			ipfsPeerCount.set(peerCount);
 			console.log(`IPFS node peer count: ${(await node.swarm.peers()).length}`);
+
+			if (peerCount > 0) {
+				ipfsConnected.set(true);
+				ipfsConnecting.set(false);
+			} else {
+				ipfsConnected.set(false);
+				ipfsConnecting.set(true);
+			}
 		}
 	);
+
+	const ipfsId = (await node.id()).id;
+	console.log(`IPFS node created with ID: ${ipfsId}`);
 
 	try {
 		console.info("Connecting to full node...");
@@ -205,12 +226,19 @@ export async function connect() {
 	exchangeContractGenesis.set(new EthersExchangeContract(
 		infoExchangeGenesis
 	));
-
-	ipfsConnected.set(true);
-	ipfsConnecting.set(false);
 }
 
 function subscribeWeb3Events(infoExchangeGenesis: InfoExchange) {
+	infoExchangeGenesis.on('CidRegistered', (staker, newCid) => {
+		console.log(`CID registered for staker ${staker}: ${newCid}`);
+
+		// Increment event count.
+		eventCount.set(eventCountLocal + 1);
+
+		refreshCountdownInterval();
+	});
+
+
 	infoExchangeGenesis.on('Staked', (staker: string, amount: BigNumber) => {
 		console.info(`Event: Staked ${ethers.utils.formatUnits(amount, 18)} tokens from ${staker}`);
 

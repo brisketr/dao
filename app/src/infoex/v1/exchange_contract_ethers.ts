@@ -29,7 +29,8 @@ export class EthersExchangeContract implements ExchangeContract {
 			});
 		}
 
-		return stakers;
+		// Return stakers in highest to lowest staked order.
+		return stakers.reverse();
 	}
 
 	minStake(): Promise<BigNumber> {
@@ -50,12 +51,14 @@ export class EthersExchangeContract implements ExchangeContract {
 
 	registerCid(cid: string): Promise<void> {
 		const ec = this;
-		return new Promise<void>((resolve, reject) => {
-			ec._contract.registerCid(cid).then(() => {
+		return new Promise<void>(async (resolve, reject) => {
+			try {
+				const txn = await ec._contract.registerCid(cid);
+				await txn.wait();
 				resolve();
-			}).catch((error) => {
-				reject(error);
-			});
+			} catch (e) {
+				reject(e);
+			}
 		});
 	}
 }

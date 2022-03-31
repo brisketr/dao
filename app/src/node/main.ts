@@ -129,6 +129,16 @@ async function pinContent(ipfs, orbit, contracts: Contracts) {
 	console.info("Getting top stakers...");
 	const topStakers = await infoEx.topStakers();
 
+	// Close/delete any existing DBs that are not in the top stakers.
+	const oldDbs = Object.keys(nameDbs).filter((stakerAddress) => !topStakers.find((s) => s.address === stakerAddress));
+
+	for (const oldDb of oldDbs) {
+		console.info(`Closing/dropping old DB for ex-staker ${oldDb}...`);
+		await nameDbs[oldDb].close();
+		await nameDbs[oldDb].drop();
+		delete nameDbs[oldDb];
+	}
+
 	// Process all topStakers concurrently.
 	const promises = topStakers.map(async (staker) => {
 		try {

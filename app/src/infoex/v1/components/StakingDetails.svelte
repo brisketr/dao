@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { BigNumber } from "ethers";
-
 	import { push } from "svelte-spa-router";
 	import { address, connected } from "../../../web3/stores";
 	import { formatBigNumber } from "../../../web3/util/format";
@@ -9,7 +8,6 @@
 	import { eventCount, exchangeContractGenesis, ipfs } from "../stores";
 	import { formattedTimeUntilUnlock } from "../unlock_countdown";
 
-	let nodeId = "";
 	let numStakers = 0;
 	let maxStakers = 0;
 	let tvl = 0;
@@ -22,8 +20,6 @@
 		ipfs: any,
 		infoEx: EthersExchangeContract
 	) {
-		nodeId = (await ipfs.id()).id;
-
 		const topStakers: Staker[] = await infoEx.topStakers();
 		numStakers = topStakers.length;
 		maxStakers = await infoEx.contract().TOP_STAKER_COUNT();
@@ -82,15 +78,9 @@
 	function access() {
 		push("/brie/exchange");
 	}
-
 </script>
 
 <table class="ui">
-	<tr>
-		<td>Node ID</td>
-		<td class="number wrap">{nodeId}</td>
-	</tr>
-
 	<tr>
 		<td># of Stakers</td>
 		<td class="number">{numStakers}/{maxStakers}</td>
@@ -125,7 +115,7 @@
 		<tr>
 			<td />
 			<td class="input">
-				<button on:click={unstake}>Unstake</button>
+				<button on:click={unstake}>👋 Unstake</button>
 			</td>
 		</tr>
 	{/if}
@@ -133,15 +123,14 @@
 	<tr>
 		<td />
 		<td class="input">
-			<button on:click={stake}>Stake</button>
+			<button on:click={stake}>🥩 Stake</button>
 		</td>
 	</tr>
 
 	<tr>
 		<td />
 		<td class="input">
-			<button on:click={access}>Access Exchange</button>
+			<button on:click={access}>📒 Access Exchange</button>
 		</td>
 	</tr>
-
 </table>

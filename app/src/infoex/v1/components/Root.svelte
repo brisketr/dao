@@ -30,7 +30,7 @@
 </script>
 
 <div id="ui">
-	<h1>Brie</h1>
+	<h1>🧀 Brie</h1>
 
 	{#if !$connected}
 		<p>Please connect your wallet.</p>

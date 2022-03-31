@@ -302,7 +302,7 @@ async function allowedKeys(
  * @param {Identity} identity The identity of the data publisher.
  * @param {ExchangeContract} The contract holding on-chain oracle data.
  * @param {InfoDoc} The doc to encrypt and publish.
- * @returns {Promise<string>} The CID of the published cipher doc.
+ * @returns {Promise<InfoCipherDoc>} The published cipher doc.
  */
 export async function publishGlobal(
 	crypto: Crypto,
@@ -310,7 +310,7 @@ export async function publishGlobal(
 	identity: Identity,
 	contract: ExchangeContract,
 	doc: InfoDoc
-): Promise<string> {
+): Promise<InfoCipherDoc> {
 	console.info("Encrypting and publishing info doc to global data store...");
 	const validKeys = await allowedKeys(globalData, contract, identity);
 
@@ -322,6 +322,7 @@ export async function publishGlobal(
 	// Publish the doc.
 	console.info(`Publishing cipher doc for ${identity.address}...`);
 	const cid = await globalData.put(serializedDoc);
+	encryptedDoc.cid = cid;
 	console.info(`Published cipher doc for ${identity.address} to ${cid}`);
 
 	// Get current cipher doc for identity.
@@ -353,18 +354,19 @@ export async function publishGlobal(
 			const serializedDoc = await serializeInfoCipherDoc(encryptedDoc);
 			console.info(`Publishing cipher doc for ${identity.address}...`);
 			const cid = await globalData.put(serializedDoc);
+			encryptedDoc.cid = cid;
 			console.info(`Published cipher doc for ${identity.address} to ${cid}`);
 
 			console.info(`Updating name for ${identity.address} to ${cid}...`);
 			await globalData.publishName("infoex_v1_cipher_doc", cid);
 
-			return cid;
+			return encryptedDoc;
 		}
 	} catch (e) {
 		console.error("Failed to update name", identity.address, e);
 	}
 
-	return cid;
+	return encryptedDoc;
 }
 
 /**
@@ -403,7 +405,7 @@ export async function needsOnChainCidUpdate(
 	globalData: GlobalDataStore,
 	contract: ExchangeContract,
 	identity: Identity,
-	newCid: string
+	newCid: string = null
 ): Promise<boolean> {
 	const cid = await contract.cid(identity.address);
 
@@ -412,13 +414,15 @@ export async function needsOnChainCidUpdate(
 	}
 
 	try {
-		const latestCipherDoc = await getCipherDoc(globalData, newCid);
-		const cdoc = await cipherDoc(globalData, contract, identity.address);
+		if (newCid) {
+			const latestCipherDoc = await getCipherDoc(globalData, newCid);
+			const cdoc = await cipherDoc(globalData, contract, identity.address);
 
-		if (latestCipherDoc.nameDb !== cdoc.nameDb) {
-			console.info(`Name db changed for ${identity.address} from ${cdoc.nameDb} to ${latestCipherDoc.nameDb}`);
+			if (latestCipherDoc.nameDb !== cdoc.nameDb) {
+				console.info(`Name db changed for ${identity.address} from ${cdoc.nameDb} to ${latestCipherDoc.nameDb}`);
 
-			return true;
+				return true;
+			}
 		}
 
 		return !(await publishedPubkeyMatches(globalData, contract, identity.address, await identity.encrypter.exportPublicKey()));
@@ -452,16 +456,18 @@ export async function updateOnChainCid(
  * @param {GlobalDataStore} globalData The global store.
  * @param {ExchangeContract} contract The contract holding on-chain oracle data.
  * @param {Identity} identity The identity of the data publisher.
+ * @param {InfoCipherDoc} latestDoc Optional latest known cipher doc for user staker.
  * @returns {Promise<boolean>} True if the identity should re-publish it's cipher doc.
  */
 export async function needsCipherDocUpdate(
 	globalData: GlobalDataStore,
 	contract: ExchangeContract,
 	identity: Identity,
+	latestDoc: InfoCipherDoc = null,
 ): Promise<boolean> {
 	const validKeys: JsonWebKey[] = await allowedKeys(globalData, contract, identity);
-	const cdoc = await cipherDoc(globalData, contract, identity.address);
-	const currentlyAllowed: JsonWebKey[] = cdoc.allowedRSAPublicKeys;
+	const cdoc = latestDoc ? latestDoc : await cipherDoc(globalData, contract, identity.address);
+	const currentlyAllowed: JsonWebKey[] = cdoc ? cdoc.allowedRSAPublicKeys : [];
 
 	// Check if the set of allowed keys has changed.
 	if (currentlyAllowed.length !== validKeys.length) {

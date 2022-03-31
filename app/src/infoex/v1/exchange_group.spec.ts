@@ -187,20 +187,20 @@ describe("Exchange Group", async () => {
 
 		// Publish doc for account 0.
 		globalData.setActiveId(allowedIdentities[0].address);
-		const cid1 = await publishGlobal(webcrypto as any, globalData, allowedIdentities[0], exchange, accountInfoDocs[0]);
+		const doc1 = await publishGlobal(webcrypto as any, globalData, allowedIdentities[0], exchange, accountInfoDocs[0]);
 		expect(await needsOnChainCidUpdate(globalData, exchange, allowedIdentities[0])).to.be.true;
 		exchange.setActiveAccount(allowedIdentities[0].address);
-		await updateOnChainCid(exchange, cid1);
+		await updateOnChainCid(exchange, doc1.cid);
 		expect(await needsOnChainCidUpdate(globalData, exchange, allowedIdentities[0])).to.be.false;
 		const cipherDocs2 = await cipherDocs(globalData, exchange);
 		expect(await newInfoAvailable(webcrypto as any, localData, cipherDocs2)).to.be.true;
 
 		// Publish doc for account 1.
 		globalData.setActiveId(allowedIdentities[1].address);
-		const cid2 = await publishGlobal(webcrypto as any, globalData, allowedIdentities[1], exchange, accountInfoDocs[1]);
+		const doc2 = await publishGlobal(webcrypto as any, globalData, allowedIdentities[1], exchange, accountInfoDocs[1]);
 		exchange.setActiveAccount(allowedIdentities[1].address);
 		expect(await needsOnChainCidUpdate(globalData, exchange, allowedIdentities[1])).to.be.true;
-		await updateOnChainCid(exchange, cid2);
+		await updateOnChainCid(exchange, doc2.cid);
 		expect(await needsOnChainCidUpdate(globalData, exchange, allowedIdentities[1])).to.be.false;
 
 		// Verify that account 0 can access both docs.
@@ -229,10 +229,10 @@ describe("Exchange Group", async () => {
 
 		// Publish doc for account 2.
 		globalData.setActiveId(allowedIdentities[2].address);
-		const cid3 = await publishGlobal(webcrypto as any, globalData, allowedIdentities[2], exchange, accountInfoDocs[2]);
+		const doc3 = await publishGlobal(webcrypto as any, globalData, allowedIdentities[2], exchange, accountInfoDocs[2]);
 		exchange.setActiveAccount(allowedIdentities[2].address);
 		expect(await needsOnChainCidUpdate(globalData, exchange, allowedIdentities[2])).to.be.true;
-		await updateOnChainCid(exchange, cid3);
+		await updateOnChainCid(exchange, doc3.cid);
 		expect(await needsOnChainCidUpdate(globalData, exchange, allowedIdentities[2])).to.be.false;
 
 		// Verify that account 0 can access all three docs.

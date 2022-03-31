@@ -18,6 +18,11 @@ export interface InfoDoc {
 	 * List of interesting accounts.
 	 */
 	accounts: InfoDocAccount[];
+
+	/**
+	 * Optional cipher doc that this doc was decrypted from.
+	 */
+	cipherDoc?: InfoCipherDoc;
 }
 
 /**
@@ -201,6 +206,17 @@ export async function decryptInfoCipherDoc(
 
 	// Deserialize the document.
 	const doc = await deserializeInfoDoc(serializedDoc);
+
+	// Iterate all accounts in doc and strip any that are not valid ethereum addresses.
+	for (const account of doc.accounts) {
+		if (account.address.match(/^0x[0-9a-fA-F]{40}$/) === null) {
+			console.warn(`Stripping invalid account address: ${account.address}`);
+			doc.accounts.splice(doc.accounts.indexOf(account), 1);
+		}
+	}
+
+	// Set reference to cipher doc.
+	doc.cipherDoc = cipherDoc;
 
 	return doc;
 }

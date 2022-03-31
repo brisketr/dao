@@ -1,26 +1,45 @@
 <script lang="ts">
-	import { add_attribute } from "svelte/internal";
+	import { address } from "../../../web3/stores";
 	import type { InfoDoc, InfoDocAccount } from "../cipher_doc";
-	import type { Staker } from "../exchange_contract";
+	import { needsOnChainCidUpdate, publishGlobal } from "../exchange_group";
 	import {
-		needsOnChainCidUpdate,
-		publishGlobal,
-		updateOnChainCid,
-	} from "../exchange_group";
-	import { exchangeContractGenesis, globalData, identity } from "../stores";
+		exchangeContractGenesis,
+		globalData,
+		identity,
+		latestCid,
+		latestCipherDoc,
+		latestDoc,
+		needsOnChainPublish,
+	} from "../stores";
+	import type { ExchangeStaker } from "./types";
 
 	export let doc: InfoDoc;
-	export let staker: Staker;
+	export let staker: ExchangeStaker;
+	export let editing = false;
+	export let minAccounts = 0;
 
 	let editable = false;
-	let editing = false;
 	let publishing = false;
 	let publishingError = "";
 	let newAccount = "";
+	let newAccountError = "";
+	let newAccountValid = false;
 
 	$: {
 		editable = $identity.address === staker.address;
 		editing = editable && editing;
+
+		const newAccountIsValidEthAddress = !!newAccount.match(
+			/^(0x)?[0-9a-fA-F]{40}$/
+		);
+
+		if (newAccount !== "" && !newAccountIsValidEthAddress) {
+			newAccountError = "Invalid Ethereum address";
+		} else {
+			newAccountError = "";
+		}
+
+		newAccountValid = newAccountIsValidEthAddress;
 	}
 
 	function edit() {
@@ -31,48 +50,47 @@
 		publishing = true;
 		console.info("Saving...");
 		console.info("Publishing to global data store...");
-		const cid = await publishGlobal(
-			crypto,
-			$globalData,
-			$identity,
-			$exchangeContractGenesis,
-			doc
-		);
-
-		console.info(
-			"Published to global data store; Checking if on-chain data needs updated."
-		);
-
-		let needsUpdate = false;
 
 		try {
-			needsUpdate = await needsOnChainCidUpdate(
+			const cipherDoc = await publishGlobal(
+				crypto,
 				$globalData,
-				$exchangeContractGenesis,
 				$identity,
-				cid
+				$exchangeContractGenesis,
+				doc
 			);
-		} catch (e) {
-			console.error(
-				`Error checking if on-chain data needs updated: ${e}; assuming it does need updated.`
-			);
-			needsUpdate = true;
-		}
 
-		if (needsUpdate) {
+			editing = false;
+			publishing = false;
+			$latestDoc = doc;
+			$latestCipherDoc = cipherDoc;
+			$latestCid = cipherDoc.cid;
+
 			console.info(
-				"On-chain data needs updated; Updating on-chain data."
+				"Published to global data store; Checking if on-chain data needs updated."
 			);
-			console.info("Updating on-chain CID...");
-			await updateOnChainCid($exchangeContractGenesis, cid);
-			console.info("Updated on-chain data.");
+
+			$needsOnChainPublish = false;
+
+			try {
+				$needsOnChainPublish = await needsOnChainCidUpdate(
+					$globalData,
+					$exchangeContractGenesis,
+					$identity,
+					cipherDoc.cid
+				);
+			} catch (e) {
+				console.error(
+					`Error checking if on-chain data needs updated: ${e}; assuming it does need updated.`
+				);
+				$needsOnChainPublish = true;
+			}
+
+			console.info("Saved!");
+		} catch (e) {
+			console.error("Error saving:", e);
+			publishingError = "Failed to publish data.";
 		}
-
-		console.info("Saved!");
-	}
-
-	function cancelEdit() {
-		editing = false;
 	}
 
 	function moveUp(account: InfoDocAccount) {
@@ -125,13 +143,29 @@
 
 		doc.accounts = accounts;
 	}
+
+	function retry() {
+		publishing = false;
+		publishingError = "";
+	}
 </script>
 
 {#if doc.accounts && doc.accounts.length > 0}
 	<ol>
 		{#each doc.accounts as account}
 			<li>
-				{account.address}
+				<strong>{account.address}</strong>
+				<div>
+					[ View: <a
+						href="https://debank.com/profile/{account.address}"
+						target="_blank">DeBank</a
+					>
+					<a
+						href="https://zapper.fi/account/{account.address}"
+						target="_blank">Zapper</a
+					>
+					]
+				</div>
 				{#if editing}
 					<div>
 						[
@@ -160,37 +194,39 @@
 	</ol>
 {/if}
 
-{#if editing}
-	<table id="add_form">
-		<tr>
-			<td class="input">
-				<input type="text" bind:value={newAccount} />
-			</td>
-			<td class="input">
-				<button on:click={add} id="add_button"> + </button>
-			</td>
-		</tr>
-	</table>
-{/if}
-
 {#if editable}
 	{#if editing}
-		<button on:click={save}>Publish</button>
-		<button on:click={cancelEdit}>Cancel</button>
+		<input type="text" bind:value={newAccount} />
+
+		{#if newAccountError}
+			<div class="error">{newAccountError}</div>
+		{/if}
+
+		<button on:click={add} disabled={!newAccountValid}>Add</button>
+		{#if publishingError}
+			<p class="error">{publishingError}</p>
+			<p>
+				<a href={window.location.toString()} on:click={retry}>
+					Acknowledge
+				</a>
+			</p>
+		{/if}
+
+		{#if doc.accounts.length >= minAccounts}
+			<button on:click={save} disabled={publishing}>
+				{#if publishing}
+					Publishing...
+				{:else}
+					Done
+				{/if}
+			</button>
+		{/if}
 	{:else}
 		<button on:click={edit} id="edit_button">Edit</button>
 	{/if}
 {/if}
 
 <style>
-	#add_form {
-		margin-bottom: 1em;
-	}
-
-	#add_button {
-		border: none;
-	}
-
 	#edit_button {
 		margin: 0;
 	}
