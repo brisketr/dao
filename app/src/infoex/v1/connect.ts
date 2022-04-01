@@ -207,7 +207,7 @@ async function createIpfs(repo: string, peerId: any) {
 			nodeAddr = "/ip4/127.0.0.1/tcp/4003/ws/p2p/12D3KooWAQRb7ewTnmRNWmafDmQ4pkgAAJ5bVEb1B31WFADtp8x6";
 		} else {
 			console.info("Connecting to production full node...");
-			nodeAddr = "/dns4/dao-node.app.brisket.lol/tcp/4003/wss/p2p/12D3KooWAQqx5zM2RrBGQQ9aYGtJJ9KRimqjFgi7YDbyCCiYUxjC";
+			nodeAddr = "/dns4/dao-node.app.brisket.lol/tcp/443/wss/p2p/12D3KooWAQqx5zM2RrBGQQ9aYGtJJ9KRimqjFgi7YDbyCCiYUxjC";
 		}
 
 		await node.swarm.connect(nodeAddr);
