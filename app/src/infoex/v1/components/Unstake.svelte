@@ -12,6 +12,7 @@
 	} from "../unlock_countdown";
 
 	let maxUnstakeFormatted = "";
+	let maxUnstake = BigNumber.from(0);
 	let amount = 0;
 	let amountError = "";
 	let unstakeAmtEl = null;
@@ -34,7 +35,7 @@
 				return;
 			}
 
-			const maxUnstake = await infoEx.contract().stakedBalance($address);
+			maxUnstake = await infoEx.contract().stakedBalance($address);
 			maxUnstakeFormatted = formatBigNumber(maxUnstake, 0, 0);
 		})();
 	}
@@ -43,7 +44,10 @@
 	 * Validate form values.
 	 */
 	$: {
-		if (amount > parseFloat(maxUnstakeFormatted)) {
+		if (
+			amount !== null &&
+			ethers.utils.parseUnits(amount.toString(), 18).gt(maxUnstake)
+		) {
 			amountError = `Maximum that can be unstaked is ${maxUnstakeFormatted}.`;
 		} else if (amount == 0 || !amount) {
 			amountError = "Amount must be greater than 0.";
@@ -60,7 +64,7 @@
 	}
 
 	function setMax() {
-		amount = parseFloat(maxUnstakeFormatted);
+		amount = parseFloat(ethers.utils.formatUnits(maxUnstake, 18))
 	}
 
 	async function unstake() {
@@ -121,7 +125,7 @@
 
 	<tr>
 		<td>Amount (BRIB)</td>
-		<td class="input number">
+		<td>
 			<input
 				type="number"
 				bind:value={amount}
@@ -131,27 +135,17 @@
 				disabled={unstakeState != "ready"}
 			/>
 			{#if amountError}
-				<div class="error">{amountError}</div>
+				<p class="error">{amountError}</p>
 			{/if}
-		</td>
-	</tr>
 
-	{#if unstakeError}
-		<tr>
-			<td />
-			<td class="error">
-				<p class="error">{unstakeError}</p>
-				<p>
+			{#if unstakeError}
+				<p class="error">
+					{unstakeError}
 					<a href={window.location.toString()} on:click={retry}
 						>Acknowledge</a
 					>
 				</p>
-			</td>
-		</tr>
-	{:else}
-		<tr>
-			<td />
-			<td class="input">
+			{:else}
 				<button
 					on:click={unstake}
 					disabled={unstakeState != "ready" || !!amountError}
@@ -168,22 +162,7 @@
 						Error
 					{/if}
 				</button>
-			</td>
-		</tr>
-	{/if}
+			{/if}
+		</td>
+	</tr>
 </table>
-
-<style>
-	td.error {
-		text-align: center;
-	}
-
-	td.error .error {
-		margin: 0;
-	}
-
-	td.input .error {
-		padding: 1em;
-		padding-top: 0;
-	}
-</style>

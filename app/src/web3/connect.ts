@@ -79,7 +79,7 @@ export async function connectWeb3() {
 	}
 
 	// Connect to contracts.
-	let contracts = await connectContracts(ethersProvider);
+	let contracts = await connectContracts(ethersProvider, ethersProvider.getSigner());
 
 	if (contracts.BRIBToken) {
 		// Use ethers to subscribe to BRIBToken events and update tokenBalanceBRIB when balance changes.

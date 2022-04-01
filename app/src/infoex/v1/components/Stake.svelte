@@ -3,11 +3,17 @@
 	import { BigNumber, ethers } from "ethers";
 	import { onMount } from "svelte";
 	import { push } from "svelte-spa-router";
-	import { address, connected, contract } from "../../../web3/stores";
+	import {
+		address,
+		connected,
+		contract,
+		tokenBalanceBRIB,
+	} from "../../../web3/stores";
 	import { formatBigNumber } from "../../../web3/util/format";
 	import type { EthersExchangeContract } from "../exchange_contract_ethers";
 	import { exchangeContractGenesis } from "../stores";
 
+	let minStake = BigNumber.from(0);
 	let minStakeFormatted = "";
 	let amount = 0;
 	let amountError = "";
@@ -32,25 +38,36 @@
 				return;
 			}
 
-			const minStake = await infoEx.minStake();
+			minStake = await infoEx.minStake();
 			minStakeFormatted = formatBigNumber(minStake, 0, 0);
 
-			const stakeAmt: BigNumber = ethers.utils.parseUnits(
-				amount.toString(),
-				18
-			);
+			if (amount !== null) {
+				const stakeAmt: BigNumber = ethers.utils.parseUnits(
+					amount.toString(),
+					18
+				);
 
-			approved =
-				(await brib.allowance($address, infoEx.contract().address)) >=
-				stakeAmt;
+				approved =
+					(await brib.allowance(
+						$address,
+						infoEx.contract().address
+					)) >= stakeAmt;
+			}
 		})();
 	}
 
 	$: {
-		if (amount < parseFloat(minStakeFormatted)) {
+		if (
+			amount !== null &&
+			ethers.utils.parseUnits(amount.toString(), 18).lt(minStake)
+		) {
 			amountError = `Minimum stake is ${minStakeFormatted}.`;
 		} else if (amount == 0 || !amount) {
 			amountError = "Amount must be greater than 0.";
+		} else if (
+			ethers.utils.parseUnits(amount.toString(), 18).gt($tokenBalanceBRIB)
+		) {
+			amountError = `Insufficient BRIB balance.`;
 		} else {
 			amountError = "";
 		}
@@ -78,7 +95,7 @@
 			stakeState = "approval-waiting";
 
 			try {
-				approveTx.wait();
+				await approveTx.wait();
 				approved = true;
 				stakeState = "ready";
 			} catch (e) {
@@ -105,7 +122,7 @@
 			stakeState = "stake-waiting";
 
 			try {
-				stakeTx.wait();
+				await stakeTx.wait();
 				stakeState = "staked";
 
 				push("/brie");
@@ -155,7 +172,7 @@
 
 	<tr>
 		<td>Amount (BRIB)</td>
-		<td class="input number">
+		<td>
 			<input
 				type="number"
 				bind:value={amount}
@@ -165,27 +182,16 @@
 				disabled={stakeState != "ready"}
 			/>
 			{#if amountError}
-				<div class="error">{amountError}</div>
+				<p class="error">{amountError}</p>
 			{/if}
-		</td>
-	</tr>
-
-	{#if stakeError}
-		<tr>
-			<td />
-			<td class="error">
-				<p class="error">{stakeError}</p>
-				<p>
+			{#if stakeError}
+				<p class="error">
+					{stakeError}
 					<a href={window.location.toString()} on:click={retry}
 						>Acknowledge</a
 					>
 				</p>
-			</td>
-		</tr>
-	{:else}
-		<tr>
-			<td />
-			<td class="input">
+			{:else}
 				<button
 					on:click={stakeOrApprove}
 					disabled={stakeState != "ready" || !!amountError}
@@ -210,22 +216,7 @@
 						Error
 					{/if}
 				</button>
-			</td>
-		</tr>
-	{/if}
+			{/if}
+		</td>
+	</tr>
 </table>
-
-<style>
-	td.error {
-		text-align: center;
-	}
-
-	td.error .error {
-		margin: 0;
-	}
-
-	td.input .error {
-		padding: 1em;
-		padding-top: 0;
-	}
-</style>

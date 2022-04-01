@@ -1,7 +1,7 @@
 import { NOISE } from "@chainsafe/libp2p-noise";
 import filters from "libp2p-websockets/src/filters";
 import GossipSub from "libp2p-gossipsub";
-import { ethers } from "ethers";
+import { ethers, Wallet } from "ethers";
 import * as IPFS from "ipfs-core";
 import Libp2p from "libp2p";
 import MPLEX from "libp2p-mplex";
@@ -16,6 +16,12 @@ const nameDbs = {};
 
 // Set production to true unless "--dev" flag is passed.
 const production = !process.argv.includes("--dev");
+
+if (production) {
+	console.info("Starting in production mode.");
+} else {
+	console.info("Starting in development mode.");
+}
 
 async function pinNames(ipfs, db) {
 	try {
@@ -136,55 +142,50 @@ async function pinContent(ipfs, orbit, contracts: Contracts) {
 
 	// Iterate stakers & get CID values.
 	console.info("Getting top stakers...");
-	try {
-		const topStakers = await infoEx.topStakers();
+	const topStakers = await infoEx.topStakers();
 
-		// Close/delete any existing DBs that are not in the top stakers.
-		const oldDbs = Object.keys(nameDbs).filter((stakerAddress) => !topStakers.find((s) => s.address === stakerAddress));
+	// Close/delete any existing DBs that are not in the top stakers.
+	const oldDbs = Object.keys(nameDbs).filter((stakerAddress) => !topStakers.find((s) => s.address === stakerAddress));
 
-		for (const oldDb of oldDbs) {
-			console.info(`Closing/dropping old DB for ex-staker ${oldDb}...`);
-			await nameDbs[oldDb].close();
-			await nameDbs[oldDb].drop();
-			delete nameDbs[oldDb];
-		}
+	for (const oldDb of oldDbs) {
+		console.info(`Closing/dropping old DB for ex-staker ${oldDb}...`);
+		await nameDbs[oldDb].close();
+		await nameDbs[oldDb].drop();
+		delete nameDbs[oldDb];
+	}
 
-		// Process all topStakers concurrently.
-		const promises = topStakers.map(async (staker) => {
-			try {
-				console.log(`Looking up CID for staker ${staker.address}...`);
+	// Process all topStakers concurrently.
+	const promises = topStakers.map(async (staker) => {
+		try {
+			console.log(`Looking up CID for staker ${staker.address}...`);
 
-				const cid = await infoEx.cid(staker.address);
+			const cid = await infoEx.cid(staker.address);
 
-				if (cid !== null && cid !== "") {
-					console.log(`Pinning CID for staker ${staker.address}: ${cid}...`);
-					await ipfs.pin.add(cid, {
-						timeout: 30 * 1000
-					});
-					console.log(`Pinned CID for staker ${staker.address}: ${cid}`);
+			if (cid !== null && cid !== "") {
+				console.log(`Pinning CID for staker ${staker.address}: ${cid}...`);
+				await ipfs.pin.add(cid, {
+					timeout: 30 * 1000
+				});
+				console.log(`Pinned CID for staker ${staker.address}: ${cid}`);
 
-					replicateDb(ipfs, orbit, staker.address, cid);
-				}
-			} catch (error) {
-				console.log(`Error pinning CID for staker ${staker.address}`, error);
-				console.error(error.stack);
+				replicateDb(ipfs, orbit, staker.address, cid);
 			}
-		});
-
-		await Promise.all(promises);
-
-		// Close any existing databases that are no longer associated with top stakers.
-		for (const [stakerAddress, db] of Object.entries(nameDbs)) {
-			if (!topStakers.find((e) => e.address.toString() === stakerAddress)) {
-				console.info(`Closing/dropping DB for staker ${stakerAddress}...`);
-				await (db as any).close();
-				await (db as any).drop();
-				delete nameDbs[stakerAddress];
-			}
+		} catch (error) {
+			console.log(`Error pinning CID for staker ${staker.address}`, error);
+			console.error(error.stack);
 		}
-	} catch (error) {
-		console.error(`Error getting top stakers: ${error}`);
-		console.error(error.stack);
+	});
+
+	await Promise.all(promises);
+
+	// Close any existing databases that are no longer associated with top stakers.
+	for (const [stakerAddress, db] of Object.entries(nameDbs)) {
+		if (!topStakers.find((e) => e.address.toString() === stakerAddress)) {
+			console.info(`Closing/dropping DB for staker ${stakerAddress}...`);
+			await (db as any).close();
+			await (db as any).drop();
+			delete nameDbs[stakerAddress];
+		}
 	}
 }
 
@@ -274,10 +275,16 @@ async function main() {
 	}, 60 * 1000);
 
 	// Connect to web3.
+	let signer = Wallet.createRandom();
 	const ethersProvider = production ? new ethers.providers.JsonRpcProvider("https://api.avax.network/ext/bc/C/rpc", {
 		name: "avalanche-c-chain",
 		chainId: 43114
-	}) : new ethers.providers.JsonRpcProvider();
+	}) : new ethers.providers.JsonRpcProvider("http://127.0.0.1:8545", {
+		name: "hardhat",
+		chainId: 31337
+	});
+	signer = signer.connect(ethersProvider);
+
 	const network = await ethersProvider.getNetwork();
 	console.info("Connected to web3 network:", network);
 
@@ -289,7 +296,7 @@ async function main() {
 	});
 
 	// Connect contracts.
-	const contracts = await connectContracts(ethersProvider);
+	const contracts = await connectContracts(ethersProvider, signer);
 
 	// Subscribe to contract events
 	for (const evt of ['CidRegistered', 'EvictStaker', 'Staked', 'Unstaked']) {
@@ -305,7 +312,7 @@ async function main() {
 	setInterval(() => {
 		pinContent(ipfs, orbit, contracts);
 	}
-	, 10 * 60 * 1000);
+		, 10 * 60 * 1000);
 }
 
 main();

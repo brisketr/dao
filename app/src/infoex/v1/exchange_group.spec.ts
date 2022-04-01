@@ -22,7 +22,9 @@ const notAllowedPhrases = [
 ];
 
 function randomKey(): string {
-	return "0x" + Math.random().toString(16).substr(2);
+	const addr = "0x" + Math.random().toString(16).substr(2);
+
+	return addr + "0".repeat(42 - addr.length);
 }
 
 class MockGlobalStore implements GlobalDataStore {
@@ -206,11 +208,23 @@ describe("Exchange Group", async () => {
 		// Verify that account 0 can access both docs.
 		const docs1 = await infoDocs(webcrypto as any, globalData, exchange, allowedIdentities[0]);
 		expect(docs1.size).to.be.equal(2);
+
+		// Delete cipherDoc property from all docs.
+		for (const doc of docs1.values()) {
+			delete doc.cipherDoc;
+		}
+
 		expect(docs1.get(allowedIdentities[0].address)).to.be.deep.equal(accountInfoDocs[0]);
 		expect(docs1.get(allowedIdentities[1].address)).to.be.deep.equal(accountInfoDocs[1]);
 
 		// Verify that account 1 can access one doc.
 		const docs2 = await infoDocs(webcrypto as any, globalData, exchange, allowedIdentities[1]);
+
+		// Delete cipherDoc property from all docs.
+		for (const doc of docs2.values()) {
+			delete doc.cipherDoc;
+		}
+
 		expect(docs2.size).to.be.equal(1);
 		expect(docs2.get(allowedIdentities[1].address)).to.be.deep.equal(accountInfoDocs[1]);
 
@@ -223,6 +237,12 @@ describe("Exchange Group", async () => {
 
 		// Verify that account 1 can access both docs.
 		const docs3 = await infoDocs(webcrypto as any, globalData, exchange, allowedIdentities[1]);
+
+		// Delete cipherDoc property from all docs.
+		for (const doc of docs3.values()) {
+			delete doc.cipherDoc;
+		}
+
 		expect(docs3.size).to.be.equal(2);
 		expect(docs3.get(allowedIdentities[0].address)).to.be.deep.equal(accountInfoDocs[0]);
 		expect(docs3.get(allowedIdentities[1].address)).to.be.deep.equal(accountInfoDocs[1]);
@@ -230,6 +250,12 @@ describe("Exchange Group", async () => {
 		// Publish doc for account 2.
 		globalData.setActiveId(allowedIdentities[2].address);
 		const doc3 = await publishGlobal(webcrypto as any, globalData, allowedIdentities[2], exchange, accountInfoDocs[2]);
+
+		// Delete cipherDoc property from all docs.
+		for (const doc of docs3.values()) {
+			delete doc.cipherDoc;
+		}
+
 		exchange.setActiveAccount(allowedIdentities[2].address);
 		expect(await needsOnChainCidUpdate(globalData, exchange, allowedIdentities[2])).to.be.true;
 		await updateOnChainCid(exchange, doc3.cid);
@@ -237,6 +263,12 @@ describe("Exchange Group", async () => {
 
 		// Verify that account 0 can access all three docs.
 		const docs4 = await infoDocs(webcrypto as any, globalData, exchange, allowedIdentities[0]);
+
+		// Delete cipherDoc property from all docs.
+		for (const doc of docs4.values()) {
+			delete doc.cipherDoc;
+		}
+
 		expect(docs4.size).to.be.equal(3);
 		expect(docs4.get(allowedIdentities[0].address)).to.be.deep.equal(accountInfoDocs[0]);
 		expect(docs4.get(allowedIdentities[1].address)).to.be.deep.equal(accountInfoDocs[1]);
@@ -244,6 +276,12 @@ describe("Exchange Group", async () => {
 
 		// Verify that account 2 can access one doc.
 		const docs5 = await infoDocs(webcrypto as any, globalData, exchange, allowedIdentities[2]);
+
+		// Delete cipherDoc property from all docs.
+		for (const doc of docs5.values()) {
+			delete doc.cipherDoc;
+		}
+
 		expect(docs5.size).to.be.equal(1);
 		expect(docs5.get(allowedIdentities[2].address)).to.be.deep.equal(accountInfoDocs[2]);
 
@@ -261,6 +299,12 @@ describe("Exchange Group", async () => {
 
 		// Verify that account 2 can access all three docs.
 		const docs6 = await infoDocs(webcrypto as any, globalData, exchange, allowedIdentities[2]);
+
+		// Delete cipherDoc property from all docs.
+		for (const doc of docs6.values()) {
+			delete doc.cipherDoc;
+		}
+
 		expect(docs6.size).to.be.equal(3);
 		expect(docs6.get(allowedIdentities[0].address)).to.be.deep.equal(accountInfoDocs[0]);
 		expect(docs6.get(allowedIdentities[1].address)).to.be.deep.equal(accountInfoDocs[1]);

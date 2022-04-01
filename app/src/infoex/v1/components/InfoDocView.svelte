@@ -78,7 +78,7 @@
 					$globalData,
 					$exchangeContractGenesis,
 					$identity,
-					cipherDoc.cid
+					cipherDoc
 				);
 			} catch (e) {
 				console.error(

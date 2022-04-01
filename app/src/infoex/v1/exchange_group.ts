@@ -412,14 +412,14 @@ export async function publishedPubkeyMatches(
  * @param {GlobalDataStore} globalData The global store.
  * @param {ExchangeContract} contract The contract holding on-chain oracle data.
  * @param {Identity} identity The identity of the data publisher.
- * @param {string} newCid The most recent known cipher doc CID (optional, used to check name db for changes).
+ * @param {InfoCipherDoc} latestCipherDoc The most recent known cipher doc (optional, used to check name db for changes).
  * @returns {Promise<boolean>} True if the on-chain CID needs to be updated.
  */
 export async function needsOnChainCidUpdate(
 	globalData: GlobalDataStore,
 	contract: ExchangeContract,
 	identity: Identity,
-	newCid: string = null
+	latestCipherDoc: InfoCipherDoc = null
 ): Promise<boolean> {
 	const cid = await contract.cid(identity.address);
 
@@ -428,8 +428,7 @@ export async function needsOnChainCidUpdate(
 	}
 
 	try {
-		if (newCid) {
-			const latestCipherDoc = await getCipherDoc(globalData, newCid);
+		if (latestCipherDoc) {
 			const cdoc = await cipherDoc(globalData, contract, identity.address);
 
 			if (latestCipherDoc.nameDb !== cdoc.nameDb) {

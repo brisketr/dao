@@ -5,6 +5,7 @@ import "hardhat/console.sol";
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract InfoExchange {
     using SafeERC20 for IERC20;
@@ -12,6 +13,7 @@ contract InfoExchange {
     IERC20 private _token;
 
     uint8 public constant TOP_STAKER_COUNT = 10;
+    uint256 public constant MIN_STAKE_AMOUNT = 1000 * 10**18;
 
     mapping(address => uint256) private _stakedBalance;
     mapping(address => uint256) private _stakedTimestamps;
@@ -34,6 +36,10 @@ contract InfoExchange {
         require(staker != address(0), "staker address cannot be 0");
         require(amount > 0, "amount must be greater than 0");
         require(amount <= _token.balanceOf(staker), "staker does not have enough of the staking token");
+        require(
+            amount + _stakedBalance[staker] >= MIN_STAKE_AMOUNT,
+            "total amount staked must be greater than minimum staking amount"
+        );
 
         // Verify amount has been approved to transfer.
         require(_token.allowance(staker, address(this)) >= amount, "allowance not enough");
@@ -139,10 +145,10 @@ contract InfoExchange {
      * @return minimum amount required to enter top stakers.
      */
     function minStake() public view returns (uint256) {
-        // If any top staker is address(0), then the minimum stake is 1.
+        // If any top staker is address(0), then the minimum stake is MIN_STAKE_AMOUNT.
         for (uint8 i = 0; i < TOP_STAKER_COUNT; i++) {
             if (_topStakers[i] == address(0)) {
-                return 1;
+                return MIN_STAKE_AMOUNT;
             }
         }
 
@@ -159,7 +165,7 @@ contract InfoExchange {
             break;
         }
 
-        return min;
+        return Math.max(min, MIN_STAKE_AMOUNT);
     }
 
     /**

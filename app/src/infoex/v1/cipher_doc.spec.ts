@@ -26,13 +26,13 @@ describe("Group Encryption", async () => {
 		const infoDoc: InfoDoc = {
 			accounts: [
 				{
-					address: "0x123",
+					address: "0x1230000000000000000000000000000000000000",
 				},
 				{
-					address: "0x456",
+					address: "0x4560000000000000000000000000000000000000",
 				},
 				{
-					address: "0x789",
+					address: "0x7890000000000000000000000000000000000000",
 				}
 			]
 		};
@@ -63,6 +63,8 @@ describe("Group Encryption", async () => {
 			);
 
 			console.log(`decryptedDoc: ${JSON.stringify(decryptedDoc)}`);
+
+			delete decryptedDoc.cipherDoc;
 
 			expect(decryptedDoc).to.deep.equal(infoDoc);
 		}));

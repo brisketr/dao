@@ -2,7 +2,7 @@ import { BRIBAirdrop202107__factory, BRIBSnapshot202107__factory, BRIBToken__fac
 import { NETWORK_METADATA } from "./constants";
 import { Contracts } from "./contracts";
 
-export async function connectContracts(provider): Promise<Contracts> {
+export async function connectContracts(provider, signer): Promise<Contracts> {
 	console.info('Connecting to contracts');
 	let contracts = new Contracts();
 	const network = await provider.getNetwork();
@@ -16,7 +16,7 @@ export async function connectContracts(provider): Promise<Contracts> {
 			if (NETWORK_METADATA[network.chainId]["CONTRACTS"][contractName]) {
 				console.info(`Connecting to ${contractName} contract at ${NETWORK_METADATA[network.chainId]["CONTRACTS"][contractName]}`);
 				contracts[contractName] = contractFactory.connect(
-					NETWORK_METADATA[network.chainId]["CONTRACTS"][contractName], provider.getSigner());
+					NETWORK_METADATA[network.chainId]["CONTRACTS"][contractName], signer);
 			}
 		}
 

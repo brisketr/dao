@@ -111,26 +111,18 @@
 			<td>Time Until Unlock</td>
 			<td class="number">{$formattedTimeUntilUnlock}</td>
 		</tr>
-
-		<tr>
-			<td />
-			<td class="input">
-				<button on:click={unstake}>👋 Unstake</button>
-			</td>
-		</tr>
 	{/if}
-
-	<tr>
-		<td />
-		<td class="input">
-			<button on:click={stake}>🥩 Stake</button>
-		</td>
-	</tr>
-
-	<tr>
-		<td />
-		<td class="input">
-			<button on:click={access}>📒 Access Exchange</button>
-		</td>
-	</tr>
 </table>
+
+{#if parseInt(userStake) > 0}
+	<p><button on:click={unstake}>👋 Unstake</button></p>
+{/if}
+
+<p><button on:click={stake}>🥩 Stake</button></p>
+<p><button on:click={access}>📒 Access Exchange</button></p>
+
+<style>
+	button {
+		margin: 0;
+	}
+</style>

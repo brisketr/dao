@@ -159,6 +159,14 @@ table.ui td.input button {
 	border: none;
 }
 
+table.ui td button:last-child {
+	margin-bottom: 0;
+}
+
+table.ui td {
+	vertical-align: top;
+}
+
 table.ui td.input input {
 	border: none;
 	margin: 0;

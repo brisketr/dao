@@ -66,9 +66,11 @@
 			(staker) => staker.address === identity.address
 		);
 
-		loading = false;
+		if (!firstPublish) {
+			loading = false;
+		}
 
-		if (userStaker) {
+		if (userStaker && ! firstPublish) {
 			// Check if cipher doc needs to be updated.
 			console.info("Checking if cipher doc needs to be updated...");
 			const needsUpdate = await needsCipherDocUpdate(
@@ -101,7 +103,7 @@
 						globalData,
 						infoEx,
 						identity,
-						cipherDoc.cid
+						cipherDoc
 					);
 				} catch (e) {
 					console.error(
@@ -113,6 +115,8 @@
 				console.info(`No need to republish doc.`);
 			}
 		}
+
+		loading = false;
 	}
 
 	$: {
