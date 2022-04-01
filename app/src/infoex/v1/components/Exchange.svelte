@@ -229,11 +229,11 @@
 			>:
 		</p>
 
-		<p>
+		<!-- <p>
 			Need ideas on <a href="#"
 				>how to find interesting on-chain accounts</a
 			>?
-		</p>
+		</p> -->
 
 		<p>
 			Remember, the <strong>better the information</strong> you can

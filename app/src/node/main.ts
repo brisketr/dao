@@ -14,6 +14,9 @@ import type { Contracts } from "../web3/contracts";
 
 const nameDbs = {};
 
+// Set production to true unless "--dev" flag is passed.
+const production = !process.argv.includes("--dev");
+
 async function pinNames(ipfs, db) {
 	try {
 		const namesLog = db.iterator({ limit: 1 })
@@ -266,12 +269,18 @@ async function main() {
 	}, 60 * 1000);
 
 	// Connect to web3.
-	const ethersProvider = new ethers.providers.JsonRpcProvider();
+	const ethersProvider = production ? new ethers.providers.JsonRpcProvider("https://api.avax.network/ext/bc/C/rpc", {
+		name: "avalanche-c-chain",
+		chainId: 43114
+	}) : new ethers.providers.JsonRpcProvider();
 	const network = await ethersProvider.getNetwork();
 	console.info("Connected to web3 network:", network);
 
 	ethersProvider.on("disconnect", () => {
 		console.info("Disconnected from web3");
+
+		// Exit the process.
+		process.exit(1);
 	});
 
 	// Connect contracts.

@@ -12,6 +12,7 @@
     "hardhat": "concurrently \"npm exec -w core -- hardhat node --hostname 127.0.0.1\" \"wait-port 127.0.0.1:8545 && npm exec -w core -- hardhat run scripts/deploy-local.ts --network localhost\"",
     "hardhat:console": "npm exec -w core -- hardhat --network localhost console --no-compile",
     "node:dao": "ts-node app/src/node/main.ts --max_old_space_size=4096",
+    "node:dao:dev": "ts-node app/src/node/main.ts --max_old_space_size=4096 --dev",
     "app:dev": "npm run dev -w app",
     "start": "npm run compile && concurrently \"npm run node\" \"npm run app:dev\"",
     "deploy:matic": "npm run hardhat run scripts/deploy.ts --network matic -w core",
