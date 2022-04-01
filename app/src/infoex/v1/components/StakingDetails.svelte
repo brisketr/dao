@@ -10,7 +10,7 @@
 
 	let numStakers = 0;
 	let maxStakers = 0;
-	let tvl = 0;
+	let tvl = "";
 	let position = 0;
 	let minStake = "";
 	let userStake = "";
@@ -30,15 +30,10 @@
 		/**
 		 * Compute TVL: sum of BRIB staked for all top stakers.
 		 */
-		tvl = parseInt(
-			formatBigNumber(
-				topStakers.reduce(
-					(acc, s) => acc.add(s.staked),
-					BigNumber.from(0)
-				),
-				0,
-				0
-			)
+		tvl = formatBigNumber(
+			topStakers.reduce((acc, s) => acc.add(s.staked), BigNumber.from(0)),
+			0,
+			0
 		);
 
 		if (userStaker) {
