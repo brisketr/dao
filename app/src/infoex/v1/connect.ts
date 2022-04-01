@@ -11,8 +11,9 @@ import Websockets from "libp2p-websockets";
 import filters from "libp2p-websockets/src/filters";
 import OrbitDB from "orbit-db";
 import PeerID from 'peer-id';
+import { PRODUCTION_NETWORK_ID } from "../../web3/constants.js";
 import type { Contracts } from "../../web3/contracts.js";
-import { address, contract } from "../../web3/stores";
+import { address, contract, ethersProvider } from "../../web3/stores";
 import type { RSAEncrypter } from "./encryption.js";
 import { EthersExchangeContract } from "./exchange_contract_ethers.js";
 import type { Identity } from "./exchange_group.js";
@@ -21,11 +22,13 @@ import { LocalStorageStore } from "./storage_local.js";
 import { eventCount, exchangeContractGenesis, globalData, identity, ipfs, ipfsConnected, ipfsConnecting, ipfsPeerCount, localData, orbit } from "./stores";
 import { refreshCountdownInterval } from "./unlock_countdown.js";
 
+let production = false;
 let encrypter: RSAEncrypter = null;
 let infoExchangeGenesis: InfoExchange = null;
 let eventCountLocal: number = 0;
 let addressLocal: string = "";
 let nameSub = null;
+let ethersProviderLocal = null;
 
 eventCount.subscribe(async (e: number) => {
 	eventCountLocal = e;
@@ -46,6 +49,12 @@ contract.subscribe(async (contract: Contracts) => {
 address.subscribe(async (address: string) => {
 	if (address) {
 		addressLocal = address;
+	}
+});
+
+ethersProvider.subscribe(async (ethersProvider) => {
+	if (ethersProvider) {
+		ethersProviderLocal = ethersProvider;
 	}
 });
 
@@ -75,7 +84,7 @@ const libp2pBundle = (opts) => {
 
 	// Build and return our libp2p node
 	// n.b. for full configuration options, see https://github.com/libp2p/js-libp2p/blob/master/doc/CONFIGURATION.md
-	return Libp2p.create({
+	const p2pconfig: any = {
 		peerId,
 		connectionManager: {
 			// minConnections: 25,
@@ -98,14 +107,6 @@ const libp2pBundle = (opts) => {
 			pubsub: GossipSub,
 		},
 		config: {
-			transport: {
-				// This is added for local demo!
-				// In a production environment the default filter should be used
-				// where only DNS + WSS addresses will be dialed by websockets in the browser.
-				[transportKey]: {
-					filter: filters.all,
-				},
-			},
 			peerDiscovery: {
 				autoDial: true,
 				bootstrap: {
@@ -118,7 +119,20 @@ const libp2pBundle = (opts) => {
 				enabled: true,
 			},
 		},
-	});
+	}
+
+	if (!production) {
+		p2pconfig.config.transport = {
+			// This is added for local demo!
+			// In a production environment the default filter should be used
+			// where only DNS + WSS addresses will be dialed by websockets in the browser.
+			[transportKey]: {
+				filter: filters.all,
+			},
+		};
+	}
+
+	return Libp2p.create(p2pconfig);
 };
 
 async function createIpfs(repo: string, peerId: any) {
@@ -186,10 +200,17 @@ async function createIpfs(repo: string, peerId: any) {
 	console.log(`IPFS node created with ID: ${ipfsId}`);
 
 	try {
-		console.info("Connecting to full node...");
-		await node.swarm.connect(
-			"/ip4/127.0.0.1/tcp/4003/ws/p2p/12D3KooWAQRb7ewTnmRNWmafDmQ4pkgAAJ5bVEb1B31WFADtp8x6"
-		);
+		let nodeAddr = "";
+
+		if (!production) {
+			console.info("Connecting to dev full node...");
+			nodeAddr = "/ip4/127.0.0.1/tcp/4003/ws/p2p/12D3KooWAQRb7ewTnmRNWmafDmQ4pkgAAJ5bVEb1B31WFADtp8x6";
+		} else {
+			console.info("Connecting to production full node...");
+			nodeAddr = "/dns4/dao-node.app.brisket.lol/tcp/4003/wss/p2p/12D3KooWAQqx5zM2RrBGQQ9aYGtJJ9KRimqjFgi7YDbyCCiYUxjC";
+		}
+
+		await node.swarm.connect(nodeAddr);
 	} catch (e) {
 		console.error(`Failed to connect to full node`, e);
 	}
@@ -207,6 +228,13 @@ export async function connect() {
 	if (addressLocal === "" || addressLocal === null) {
 		throw new Error("No address set");
 	}
+
+	if (ethersProviderLocal === null) {
+		throw new Error("No ethers provider set");
+	}
+
+	const network = await ethersProviderLocal.getNetwork();
+	production = network.chainId === PRODUCTION_NETWORK_ID;
 
 	// Connect to IPFS.
 	console.info("Connecting to IPFS...");
