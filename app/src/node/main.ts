@@ -136,50 +136,55 @@ async function pinContent(ipfs, orbit, contracts: Contracts) {
 
 	// Iterate stakers & get CID values.
 	console.info("Getting top stakers...");
-	const topStakers = await infoEx.topStakers();
+	try {
+		const topStakers = await infoEx.topStakers();
 
-	// Close/delete any existing DBs that are not in the top stakers.
-	const oldDbs = Object.keys(nameDbs).filter((stakerAddress) => !topStakers.find((s) => s.address === stakerAddress));
+		// Close/delete any existing DBs that are not in the top stakers.
+		const oldDbs = Object.keys(nameDbs).filter((stakerAddress) => !topStakers.find((s) => s.address === stakerAddress));
 
-	for (const oldDb of oldDbs) {
-		console.info(`Closing/dropping old DB for ex-staker ${oldDb}...`);
-		await nameDbs[oldDb].close();
-		await nameDbs[oldDb].drop();
-		delete nameDbs[oldDb];
-	}
+		for (const oldDb of oldDbs) {
+			console.info(`Closing/dropping old DB for ex-staker ${oldDb}...`);
+			await nameDbs[oldDb].close();
+			await nameDbs[oldDb].drop();
+			delete nameDbs[oldDb];
+		}
 
-	// Process all topStakers concurrently.
-	const promises = topStakers.map(async (staker) => {
-		try {
-			console.log(`Looking up CID for staker ${staker.address}...`);
+		// Process all topStakers concurrently.
+		const promises = topStakers.map(async (staker) => {
+			try {
+				console.log(`Looking up CID for staker ${staker.address}...`);
 
-			const cid = await infoEx.cid(staker.address);
+				const cid = await infoEx.cid(staker.address);
 
-			if (cid !== null && cid !== "") {
-				console.log(`Pinning CID for staker ${staker.address}: ${cid}...`);
-				await ipfs.pin.add(cid, {
-					timeout: 30 * 1000
-				});
-				console.log(`Pinned CID for staker ${staker.address}: ${cid}`);
+				if (cid !== null && cid !== "") {
+					console.log(`Pinning CID for staker ${staker.address}: ${cid}...`);
+					await ipfs.pin.add(cid, {
+						timeout: 30 * 1000
+					});
+					console.log(`Pinned CID for staker ${staker.address}: ${cid}`);
 
-				replicateDb(ipfs, orbit, staker.address, cid);
+					replicateDb(ipfs, orbit, staker.address, cid);
+				}
+			} catch (error) {
+				console.log(`Error pinning CID for staker ${staker.address}`, error);
+				console.error(error.stack);
 			}
-		} catch (error) {
-			console.log(`Error pinning CID for staker ${staker.address}`, error);
-			console.error(error.stack);
-		}
-	});
+		});
 
-	await Promise.all(promises);
+		await Promise.all(promises);
 
-	// Close any existing databases that are no longer associated with top stakers.
-	for (const [stakerAddress, db] of Object.entries(nameDbs)) {
-		if (!topStakers.find((e) => e.address.toString() === stakerAddress)) {
-			console.info(`Closing/dropping DB for staker ${stakerAddress}...`);
-			await (db as any).close();
-			await (db as any).drop();
-			delete nameDbs[stakerAddress];
+		// Close any existing databases that are no longer associated with top stakers.
+		for (const [stakerAddress, db] of Object.entries(nameDbs)) {
+			if (!topStakers.find((e) => e.address.toString() === stakerAddress)) {
+				console.info(`Closing/dropping DB for staker ${stakerAddress}...`);
+				await (db as any).close();
+				await (db as any).drop();
+				delete nameDbs[stakerAddress];
+			}
 		}
+	} catch (error) {
+		console.error(`Error getting top stakers: ${error}`);
+		console.error(error.stack);
 	}
 }
 
@@ -295,6 +300,12 @@ async function main() {
 	}
 
 	pinContent(ipfs, orbit, contracts);
+
+	// Call pinContent every 10 minutes.
+	setInterval(() => {
+		pinContent(ipfs, orbit, contracts);
+	}
+	, 10 * 60 * 1000);
 }
 
 main();
